@@ -8,7 +8,7 @@ from wagtail.fields import RichTextField
 from wagtail.contrib.forms.models import AbstractEmailForm, AbstractFormField
 from wagtail.contrib.forms.panels import FormSubmissionsPanel
 
-from {{ project_name }}.utils.models import BasePage
+from utils.models import BasePage
 
 
 class FormField(AbstractFormField):

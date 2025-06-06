@@ -32,15 +32,14 @@ if "CSRF_TRUSTED_ORIGINS" in os.environ:
 # Application definition
 
 INSTALLED_APPS = [
-    "{{ project_name }}.forms",
-    "{{ project_name }}.home",
-    "{{ project_name }}.images",
-    "{{ project_name }}.navigation",
-    "{{ project_name }}.news",
-    "{{ project_name }}.search",
-    "{{ project_name }}.standardpages",
-    "{{ project_name }}.users",
-    "{{ project_name }}.utils",
+    "apps.forms",
+    "apps.home",
+    "apps.standardpages",
+    "apps.users",
+    "utils.images",
+    "utils.navigation",
+    "utils.search",
+    "utils",
     "wagtail.contrib.settings",
     "wagtail.contrib.forms",
     "wagtail.contrib.redirects",
