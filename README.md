@@ -61,8 +61,8 @@ All commands from now on should be run from inside the virtual environment.
 
 10. **Access the Site and Admin**: Once the server is running, you can view the site at `localhost:8000` and access the Wagtail admin interface at `localhost:8000/admin`. Log in with the default credentials provided by :
 
-    - Username: admin
-    - Password: password
+    - Username: rhamaa
+    - Password: admin
 
 ### Deploying
 
