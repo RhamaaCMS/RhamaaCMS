@@ -36,6 +36,32 @@ def get_apps_from_folder(folder_path):
     
     return apps
 
+def import_app_settings(folder_path):
+    """
+    Import settings from all apps in the specified folder.
+    Each app can have a settings.py file with app-specific configurations.
+    """
+    apps_dir = os.path.join(BASE_DIR, folder_path)
+
+    if os.path.exists(apps_dir):
+        for item in os.listdir(apps_dir):
+            app_path = os.path.join(apps_dir, item)
+            if (os.path.isdir(app_path) and 
+                os.path.exists(os.path.join(app_path, '__init__.py'))):
+                try:
+                    # Import app settings if exists
+                    module_name = f"{folder_path}.{item}.settings"
+                    module = __import__(module_name, fromlist=[''])
+
+                    # Import all uppercase attributes (Django convention)
+                    for attr in dir(module):
+                        if attr.isupper():
+                            globals()[attr] = getattr(module, attr)
+
+                except ImportError:
+                    # App doesn't have settings.py, skip
+                    continue
+
 if "SECRET_KEY" in os.environ:
     SECRET_KEY = os.environ["SECRET_KEY"]
 
