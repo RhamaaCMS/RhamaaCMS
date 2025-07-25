@@ -17,6 +17,25 @@ import dj_database_url
 PROJECT_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 BASE_DIR = os.path.dirname(PROJECT_DIR)
 
+
+def get_apps_from_folder(folder_path):
+    """
+    Automatically discover Django apps in the specified folder.
+    Returns a list of app names in the format 'folder.app_name'.
+    """
+    apps = []
+    apps_dir = os.path.join(BASE_DIR, folder_path)
+    
+    if os.path.exists(apps_dir):
+        for item in os.listdir(apps_dir):
+            app_path = os.path.join(apps_dir, item)
+            # Check if it's a directory and contains __init__.py (Python package)
+            if (os.path.isdir(app_path) and 
+                os.path.exists(os.path.join(app_path, '__init__.py'))):
+                apps.append(f"{folder_path}.{item}")
+    
+    return apps
+
 if "SECRET_KEY" in os.environ:
     SECRET_KEY = os.environ["SECRET_KEY"]
 
@@ -31,13 +50,13 @@ if "CSRF_TRUSTED_ORIGINS" in os.environ:
 
 # Application definition
 
-INSTALLED_APPS = [
-    "apps.forms",
-    "apps.home",
-    "apps.standardpages",
-    "apps.users",
+# Automatically discover apps in the 'apps' folder
+RHAMAA_APPS = get_apps_from_folder('apps')
+
+# Manually defined apps (utils, third-party, Django built-ins)
+BASE_APPS = [
     "utils.images",
-    "utils.navigation",
+    "utils.navigation", 
     "utils.search",
     "utils",
     "wagtail.contrib.settings",
@@ -61,6 +80,9 @@ INSTALLED_APPS = [
     "django.contrib.messages",
     "django.contrib.staticfiles",
 ]
+
+# Combine auto-discovered apps with manual apps
+INSTALLED_APPS = RHAMAA_APPS + BASE_APPS
 
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
