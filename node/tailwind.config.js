@@ -1,156 +1,253 @@
 /** @type {import('tailwindcss').Config} */
 module.exports = {
-  darkMode: 'class',
+  darkMode: ['class', '[data-theme="dark"]'],
   content: [
-    "../Motify/templates/**/*.html",
-    "../utils/templates/**/*.html",
+    "../templates/**/*.html",
+    "../utils/templates/**/*.html", 
     "../apps/**/templates/**/*.html",
-    "./static_src/**/*.{js,jsx,scss}",
+    "../static_src/**/*.{js,jsx,scss}",
     "./node_modules/preline/dist/*.js",
   ],
   theme: {
     extend: {
+      // =============================================================================
+      // GLOBAL DESIGN SYSTEM - RHAMAA BRAND
+      // =============================================================================
+      
       colors: {
+        // Brand Colors
         primary: {
-          DEFAULT: '#4A9FE6', // Sky Blue - Main primary color from image
-          50: '#EBF5FE',
-          100: '#D7EBFD',
-          200: '#B0D7FB',
-          300: '#88C3F9',
-          400: '#61AFF7',
-          500: '#4A9FE6', // Main shade
-          600: '#2B7FD4',
-          700: '#1C60A9',
-          800: '#0E407E',
-          900: '#072053',
+          DEFAULT: '#1a4a47',
+          50: '#f0f9f8',
+          100: '#ccebe8',
+          200: '#99d6d1',
+          300: '#66c2ba',
+          400: '#33ada3',
+          500: '#1a4a47',
+          600: '#153b39',
+          700: '#102c2b',
+          800: '#0b1e1d',
+          900: '#050f0e',
         },
         secondary: {
-          DEFAULT: '#F2F2F2', // Light Gray
-          50: '#FFFFFF',
-          100: '#FAFAFA',
-          200: '#F2F2F2', // Main shade
-          300: '#E6E6E6',
-          400: '#D9D9D9',
-          500: '#CCCCCC',
-          600: '#B3B3B3',
-          700: '#999999',
-          800: '#808080',
-          900: '#666666',
+          DEFAULT: '#b8860b',
+          50: '#faf5d9',
+          75: '#f7ebb8',
+          100: '#f4e4a6',
+          200: '#e8d074',
+          300: '#dcbc42',
+          400: '#d4a00f',
+          500: '#b8860b',
+          600: '#9a7209',
+          700: '#7c5e07',
+          800: '#5e4905',
+          900: '#403503',
         },
-        accent1: {
-          DEFAULT: '#5DCE57', // Lime Green
-          50: '#EFF9EF',
-          100: '#DFF3DE',
-          200: '#BFE7BD',
-          300: '#9EDB9C',
-          400: '#7ED57B',
-          500: '#5DCE57', // Main shade
-          600: '#3EB538',
-          700: '#2F892B',
-          800: '#205C1D',
-          900: '#102E0E',
+        
+        // Neutral Colors
+        grey: {
+          50: '#f6f6f8',
+          100: '#e0e0e0',
+          150: '#c8c8c8',
+          200: '#929292',
+          400: '#5c5c5c',
+          500: '#333333',
+          600: '#262626',
+          700: '#222222',
+          800: '#1d1d1d',
         },
-        accent2: {
-          DEFAULT: '#FFA726', // Soft Amber / Orange Tint
-          50: '#FFF5E6',
-          100: '#FFEACC',
-          200: '#FFD699',
-          300: '#FFC166',
-          400: '#FFAD33',
-          500: '#FFA726', // Main shade
-          600: '#E68A00',
-          700: '#B36B00',
-          800: '#804C00',
-          900: '#4D2E00',
+        
+        // Status Colors
+        info: {
+          50: '#e2f5fc',
+          75: '#80b6c7',
+          100: '#1d7792',
+          125: '#186076',
         },
-        danger: {
-          DEFAULT: '#EF5350', // Soft Red
-          50: '#FDEEEE',
-          100: '#FBDDDD',
-          200: '#F7BBBB',
-          300: '#F39999',
-          400: '#F17775',
-          500: '#EF5350', // Main shade
-          600: '#EA2521',
-          700: '#C11A16',
-          800: '#8F1310',
-          900: '#5D0C0A',
+        positive: {
+          50: '#e0fbf4',
+          100: '#1b8666',
         },
-        navy: {
-          DEFAULT: '#002D72', // Deep Navy
-          50: '#E6EBF4',
-          100: '#CCD7E9',
-          200: '#99AFD3',
-          300: '#6687BD',
-          400: '#335FA7',
-          500: '#003791',
-          600: '#002D72', // Main shade
-          700: '#002259',
-          800: '#001640',
-          900: '#000B26',
+        warning: {
+          50: '#fff5d8',
+          75: '#fdd074',
+          100: '#faa500',
         },
-        text: {
-          DEFAULT: '#333333', // Charcoal Gray
-          light: '#777777', // Lighter text for secondary content
-          dark: '#111111', // Darker text for emphasis
+        critical: {
+          50: '#fef0f0',
+          100: '#fd5765',
+          200: '#ca3b3b',
         },
-        background: {
-          DEFAULT: '#FFFFFF', // White
-          alt: '#F8F9FA', // Slightly off-white for alternating sections
-          dark: '#333333', // Dark background for contrast sections
-        },
-        success: '#5DCE57', // Same as accent1
-        warning: '#FFA726', // Same as accent2
-        info: '#007BFF', // Same as primary
-        error: '#EF5350', // Same as danger
       },
+      
       fontFamily: {
-        sans: ['Hubot Sans', 'system-ui', 'sans-serif'],
-        heading: ['Mona Sans', 'system-ui', 'sans-serif'],
-        hubot: ['Hubot Sans', 'system-ui', 'sans-serif'],
-        mona: ['Mona Sans', 'system-ui', 'sans-serif'],
+        sans: ['Inter', 'system-ui', '-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'Roboto', 'sans-serif'],
+        mono: ['JetBrains Mono', 'Fira Code', 'Consolas', 'monospace'],
       },
-      boxShadow: {
-        'brutal-flat': 'var(--brutal-shadow-flat)',
-        'brutal-pressed': 'var(--brutal-shadow-pressed)',
-        'brutal-flat-sm': 'var(--brutal-shadow-flat-sm)',
-        'brutal-pressed-sm': 'var(--brutal-shadow-pressed-sm)',
+      
+      fontSize: {
+        'xs': ['0.75rem', { lineHeight: '1.25' }],
+        'sm': ['0.875rem', { lineHeight: '1.5' }],
+        'base': ['1rem', { lineHeight: '1.5' }],
+        'lg': ['1.125rem', { lineHeight: '1.5' }],
+        'xl': ['1.25rem', { lineHeight: '1.5' }],
+        '2xl': ['1.5rem', { lineHeight: '1.25' }],
+        '3xl': ['1.875rem', { lineHeight: '1.25' }],
+        '4xl': ['2.25rem', { lineHeight: '1.25' }],
       },
+      
+      spacing: {
+        'xs': 'var(--g-spacing-xs)',
+        'sm': 'var(--g-spacing-sm)',
+        'md': 'var(--g-spacing-md)',
+        'lg': 'var(--g-spacing-lg)',
+        'xl': 'var(--g-spacing-xl)',
+        '2xl': 'var(--g-spacing-2xl)',
+      },
+      
       borderRadius: {
-        'neu': 'var(--brutal-radius)',
+        'sm': 'var(--g-border-radius-sm)',
+        'md': 'var(--g-border-radius-md)',
+        'lg': 'var(--g-border-radius-lg)',
+        'xl': 'var(--g-border-radius-xl)',
+        '2xl': 'var(--g-border-radius-2xl)',
+        'full': 'var(--g-border-radius-full)',
       },
-      textColor: {
-        'content': 'var(--content)',
-        'content-muted': 'var(--content-muted)',
+      
+      boxShadow: {
+        'sm': 'var(--g-shadow-sm)',
+        'md': 'var(--g-shadow-md)',
+        'lg': 'var(--g-shadow-lg)',
+        'xl': 'var(--g-shadow-xl)',
       },
-      backgroundColor: {
-        'content-bg': 'var(--background)',
-      },
+      
+      // Component-specific utilities
       animation: {
-        'pulse-slow': 'pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite',
-        'float': 'float 6s ease-in-out infinite',
+        'fade-in': 'fadeIn 0.2s ease-in-out',
+        'slide-up': 'slideUp 0.3s ease-out',
+        'slide-down': 'slideDown 0.3s ease-out',
       },
+      
       keyframes: {
-        float: {
-          '0%, 100%': { transform: 'translateY(0)' },
-          '50%': { transform: 'translateY(-10px)' },
+        fadeIn: {
+          '0%': { opacity: '0' },
+          '100%': { opacity: '1' },
         },
-      },
-      tabSize: {
-        1: '1',
-        2: '2',
-        4: '4',
-        8: '8',
+        slideUp: {
+          '0%': { transform: 'translateY(10px)', opacity: '0' },
+          '100%': { transform: 'translateY(0)', opacity: '1' },
+        },
+        slideDown: {
+          '0%': { transform: 'translateY(-10px)', opacity: '0' },
+          '100%': { transform: 'translateY(0)', opacity: '1' },
+        },
       },
     },
   },
   plugins: [
     require('preline/plugin'),
     require('@tailwindcss/typography'),
-    function({ addUtilities }) {
+    require('@tailwindcss/forms'),
+    
+    // Custom utilities plugin
+    function({ addUtilities, addComponents, theme }) {
+      // Tab size utility
       addUtilities({
         '.tab-2': {
           'tab-size': '2',
+        },
+        '.tab-4': {
+          'tab-size': '4',
+        },
+        '.resize-vertical': {
+          'resize': 'vertical',
+        },
+        '.resize-horizontal': {
+          'resize': 'horizontal',
+        },
+        '.resize-both': {
+          'resize': 'both',
+        },
+        '.resize-none': {
+          'resize': 'none',
+        },
+      });
+      
+      // Global design system utilities
+      addUtilities({
+        '.g-focus': {
+          'outline': '2px solid var(--g-color-focus)',
+          'outline-offset': '2px',
+        },
+        '.g-focus-visible': {
+          '&:focus-visible': {
+            'outline': '2px solid var(--g-color-focus)',
+            'outline-offset': '2px',
+          },
+        },
+      });
+      
+      // Component base styles
+      addComponents({
+        '.g-btn': {
+          '@apply inline-flex items-center justify-center px-4 py-2 text-sm font-medium rounded-md transition-colors duration-200 g-focus-visible': {},
+          'background-color': 'var(--g-color-surface-button-default)',
+          'color': 'var(--g-color-text-button)',
+          'border': '1px solid transparent',
+          
+          '&:hover': {
+            'background-color': 'var(--g-color-surface-button-hover)',
+          },
+          
+          '&:disabled': {
+            'background-color': 'var(--g-color-surface-button-inactive)',
+            'color': 'var(--g-color-text-meta)',
+            'cursor': 'not-allowed',
+          },
+        },
+        
+        '.g-btn-outline': {
+          '@apply g-btn': {},
+          'background-color': 'transparent',
+          'color': 'var(--g-color-text-button-outline-default)',
+          'border-color': 'var(--g-color-border-button-outline-default)',
+          
+          '&:hover': {
+            'background-color': 'var(--g-color-surface-button-outline-hover)',
+            'color': 'var(--g-color-text-button-outline-hover)',
+            'border-color': 'var(--g-color-border-button-outline-hover)',
+          },
+        },
+        
+        '.g-input': {
+          '@apply w-full px-3 py-2 text-sm rounded-md transition-colors duration-200 g-focus-visible': {},
+          'background-color': 'var(--g-color-surface-field)',
+          'border': '1px solid var(--g-color-border-field-default)',
+          'color': 'var(--g-color-text-label)',
+          
+          '&::placeholder': {
+            'color': 'var(--g-color-text-placeholder)',
+          },
+          
+          '&:hover': {
+            'border-color': 'var(--g-color-border-field-hover)',
+          },
+          
+          '&:disabled': {
+            'background-color': 'var(--g-color-surface-field-inactive)',
+            'border-color': 'var(--g-color-border-field-inactive)',
+            'cursor': 'not-allowed',
+          },
+        },
+        
+        '.g-card': {
+          '@apply rounded-lg shadow-md': {},
+          'background-color': 'var(--g-color-surface-dashboard-panel)',
+          'border': '1px solid var(--g-color-border-furniture)',
+        },
+        
+        '.g-panel': {
+          '@apply p-6 g-card': {},
         },
       });
     },

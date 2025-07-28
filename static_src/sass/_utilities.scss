@@ -1,0 +1,326 @@
+// =============================================================================
+// UTILITY CLASSES
+// =============================================================================
+// Additional utility classes for the global design system
+
+// =============================================================================
+// LAYOUT UTILITIES
+// =============================================================================
+
+.g-container {
+  @apply max-w-7xl mx-auto px-4 sm:px-6 lg:px-8;
+}
+
+.g-container-sm {
+  @apply max-w-3xl mx-auto px-4 sm:px-6;
+}
+
+.g-section {
+  @apply py-8 lg:py-12;
+}
+
+.g-section-sm {
+  @apply py-4 lg:py-6;
+}
+
+// =============================================================================
+// SPACING UTILITIES
+// =============================================================================
+
+.g-stack > * + * {
+  margin-top: var(--g-spacing-md);
+}
+
+.g-stack-sm > * + * {
+  margin-top: var(--g-spacing-sm);
+}
+
+.g-stack-lg > * + * {
+  margin-top: var(--g-spacing-lg);
+}
+
+.g-cluster {
+  @apply flex flex-wrap items-center;
+  gap: var(--g-spacing-sm);
+}
+
+.g-cluster-lg {
+  @apply flex flex-wrap items-center;
+  gap: var(--g-spacing-lg);
+}
+
+// =============================================================================
+// TYPOGRAPHY UTILITIES
+// =============================================================================
+
+.g-heading {
+  @apply font-semibold leading-tight;
+  color: var(--g-color-text-label);
+}
+
+.g-heading-1 {
+  @apply g-heading text-4xl;
+}
+
+.g-heading-2 {
+  @apply g-heading text-3xl;
+}
+
+.g-heading-3 {
+  @apply g-heading text-2xl;
+}
+
+.g-heading-4 {
+  @apply g-heading text-xl;
+}
+
+.g-heading-5 {
+  @apply g-heading text-lg;
+}
+
+.g-heading-6 {
+  @apply g-heading text-base;
+}
+
+.g-body {
+  @apply text-base leading-normal;
+  color: var(--g-color-text-context);
+}
+
+.g-body-sm {
+  @apply text-sm leading-normal;
+  color: var(--g-color-text-context);
+}
+
+.g-caption {
+  @apply text-sm;
+  color: var(--g-color-text-meta);
+}
+
+.g-link {
+  @apply underline transition-colors duration-200;
+  color: var(--g-color-text-link-default);
+  
+  &:hover {
+    color: var(--g-color-text-link-hover);
+  }
+}
+
+// =============================================================================
+// SURFACE UTILITIES
+// =============================================================================
+
+.g-surface-page {
+  background-color: var(--g-color-surface-page);
+}
+
+.g-surface-panel {
+  background-color: var(--g-color-surface-dashboard-panel);
+}
+
+.g-surface-field {
+  background-color: var(--g-color-surface-field);
+}
+
+.g-surface-header {
+  background-color: var(--g-color-surface-header);
+}
+
+// =============================================================================
+// BORDER UTILITIES
+// =============================================================================
+
+.g-border {
+  @apply border;
+  border-color: var(--g-color-border-furniture);
+}
+
+.g-border-t {
+  @apply border-t;
+  border-color: var(--g-color-border-furniture);
+}
+
+.g-border-b {
+  @apply border-b;
+  border-color: var(--g-color-border-furniture);
+}
+
+.g-border-l {
+  @apply border-l;
+  border-color: var(--g-color-border-furniture);
+}
+
+.g-border-r {
+  @apply border-r;
+  border-color: var(--g-color-border-furniture);
+}
+
+.g-divide-y > * + * {
+  @apply border-t;
+  border-color: var(--g-color-border-furniture);
+}
+
+.g-divide-x > * + * {
+  @apply border-l;
+  border-color: var(--g-color-border-furniture);
+}
+
+// =============================================================================
+// INTERACTIVE UTILITIES
+// =============================================================================
+
+.g-interactive {
+  @apply transition-colors duration-200 cursor-pointer;
+  
+  &:hover {
+    background-color: var(--g-color-surface-field-inactive);
+  }
+  
+  &:focus {
+    @apply g-focus;
+  }
+}
+
+.g-clickable {
+  @apply cursor-pointer select-none;
+  
+  &:active {
+    transform: translateY(1px);
+  }
+}
+
+// =============================================================================
+// STATUS UTILITIES
+// =============================================================================
+
+.g-status-info {
+  color: var(--g-color-info-100);
+}
+
+.g-status-success {
+  color: var(--g-color-positive-100);
+}
+
+.g-status-warning {
+  color: var(--g-color-warning-100);
+}
+
+.g-status-error {
+  color: var(--g-color-critical-200);
+}
+
+.g-bg-status-info {
+  background-color: var(--g-color-info-50);
+}
+
+.g-bg-status-success {
+  background-color: var(--g-color-positive-50);
+}
+
+.g-bg-status-warning {
+  background-color: var(--g-color-warning-50);
+}
+
+.g-bg-status-error {
+  background-color: var(--g-color-critical-50);
+}
+
+// =============================================================================
+// ANIMATION UTILITIES
+// =============================================================================
+
+.g-fade-in {
+  animation: fadeIn 0.2s ease-in-out;
+}
+
+.g-slide-up {
+  animation: slideUp 0.3s ease-out;
+}
+
+.g-slide-down {
+  animation: slideDown 0.3s ease-out;
+}
+
+.g-bounce-in {
+  animation: bounceIn 0.5s ease-out;
+}
+
+@keyframes bounceIn {
+  0% {
+    transform: scale(0.3);
+    opacity: 0;
+  }
+  50% {
+    transform: scale(1.05);
+  }
+  70% {
+    transform: scale(0.9);
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+// =============================================================================
+// RESPONSIVE UTILITIES
+// =============================================================================
+
+.g-hide-mobile {
+  @apply hidden sm:block;
+}
+
+.g-hide-desktop {
+  @apply block sm:hidden;
+}
+
+.g-mobile-only {
+  @apply sm:hidden;
+}
+
+.g-desktop-only {
+  @apply hidden sm:block;
+}
+
+// =============================================================================
+// ACCESSIBILITY UTILITIES
+// =============================================================================
+
+.g-focus-trap {
+  &:focus {
+    @apply g-focus;
+  }
+}
+
+.g-reduced-motion {
+  @media (prefers-reduced-motion: reduce) {
+    animation: none !important;
+    transition: none !important;
+  }
+}
+
+// =============================================================================
+// PRINT UTILITIES
+// =============================================================================
+
+@media print {
+  .g-print-hidden {
+    display: none !important;
+  }
+  
+  .g-print-visible {
+    display: block !important;
+  }
+  
+  .g-print-break-before {
+    page-break-before: always;
+  }
+  
+  .g-print-break-after {
+    page-break-after: always;
+  }
+  
+  .g-print-no-break {
+    page-break-inside: avoid;
+  }
+}

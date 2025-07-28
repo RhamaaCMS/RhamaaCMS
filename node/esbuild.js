@@ -6,36 +6,43 @@ const sass = require('sass');
 const chokidar = require('chokidar');
 const chalk = require('chalk');
 
-// Shared build configuration
-const buildConfig = {
-  entryPoints: ['../static_src/js/main.js'],
-  bundle: true,
-  outfile: '../static_compiled/js/main.js',
-  minify: true,
-  sourcemap: true,
-  target: ['es2015'],
-  loader: {
-    '.js': 'jsx',
-  },
+// =============================================================================
+// CONFIGURATION
+// =============================================================================
+
+const IS_PRODUCTION = process.env.NODE_ENV === 'production';
+const IS_WATCH = process.argv.includes('--watch');
+
+const PATHS = {
+  staticSrc: path.resolve(__dirname, '../static_src'),
+  staticCompiled: path.resolve(__dirname, '../static_compiled'),
+  templates: [
+    path.resolve(__dirname, '../templates/**/*.html'),
+    path.resolve(__dirname, '../utils/templates/**/*.html'),
+    path.resolve(__dirname, '../apps/**/templates/**/*.html')
+  ]
 };
 
-// Konfigurasi path
-const TEMPLATES_DIR = [
-  path.resolve(__dirname, '../Motify/templates/**/*.html'),
-  path.resolve(__dirname, '../utils/templates/**/*.html'),
-  path.resolve(__dirname, '../apps/**/templates/**/*.html')
-];
-const STATIC_SRC = path.resolve(__dirname, '../static_src');
-const STATIC_COMPILED = path.resolve(__dirname, '../static_compiled');
+// =============================================================================
+// UTILITIES
+// =============================================================================
 
-// Copy directory recursively
-const copyDir = (src, dest) => {
-  // Create destination directory if it doesn't exist
-  if (!fs.existsSync(dest)) {
-    fs.mkdirSync(dest, { recursive: true });
+const log = {
+  info: (msg) => console.log(chalk.blue('ℹ'), msg),
+  success: (msg) => console.log(chalk.green('✓'), msg),
+  warning: (msg) => console.log(chalk.yellow('⚠'), msg),
+  error: (msg) => console.log(chalk.red('✗'), msg),
+  build: (msg) => console.log(chalk.cyan('🔨'), msg)
+};
+
+const ensureDir = (dir) => {
+  if (!fs.existsSync(dir)) {
+    fs.mkdirSync(dir, { recursive: true });
   }
+};
 
-  // Read source directory
+const copyDir = (src, dest) => {
+  ensureDir(dest);
   const entries = fs.readdirSync(src, { withFileTypes: true });
 
   for (const entry of entries) {
@@ -50,213 +57,273 @@ const copyDir = (src, dest) => {
   }
 };
 
-// Copy static assets
-const copyStaticAssets = () => {
+// =============================================================================
+// BUILD TASKS
+// =============================================================================
+
+const buildCSS = async () => {
   try {
-    // Copy fonts
-    copyDir('../static_src/fonts', '../static_compiled/fonts');
-    console.log('Fonts copied successfully!');
-
-    // Copy images
-    copyDir('../static_src/images', '../static_compiled/images');
-    console.log('Images copied successfully!');
-  } catch (error) {
-    console.error('Failed to copy static assets:', error);
-    process.exit(1);
-  }
-};
-
-// Watch static assets
-const watchStaticAssets = () => {
-  try {
-    // Initial copy
-    copyStaticAssets();
-
-    // Watch fonts directory
-    fs.watch('../static_src/fonts', { recursive: true }, (eventType, filename) => {
-      console.log(`Detected ${eventType} in fonts: ${filename}`);
-      copyDir('../static_src/fonts', '../static_compiled/fonts');
-      console.log('Fonts updated!');
+    log.build('Building CSS...');
+    
+    // Compile SCSS
+    const sassResult = sass.compile(path.join(PATHS.staticSrc, 'sass/main.scss'), {
+      style: IS_PRODUCTION ? 'compressed' : 'expanded',
+      sourceMap: !IS_PRODUCTION,
+      loadPaths: [path.join(PATHS.staticSrc, 'sass')]
     });
 
-    // Watch images directory
-    fs.watch('../static_src/images', { recursive: true }, (eventType, filename) => {
-      console.log(`Detected ${eventType} in images: ${filename}`);
-      copyDir('../static_src/images', '../static_compiled/images');
-      console.log('Images updated!');
-    });
+    // Ensure output directory exists
+    ensureDir(path.join(PATHS.staticCompiled, 'css'));
 
-    console.log('Watching static assets...');
-  } catch (error) {
-    console.error('Failed to watch static assets:', error);
-    process.exit(1);
-  }
-};
-
-// SCSS and CSS build configuration
-const buildCss = () => {
-  try {
-    // First compile SCSS to CSS
-    const sassResult = sass.compile('../static_src/sass/main.scss', {
-      style: 'compressed',
-      sourceMap: true
-    });
-
-    // Create temp CSS file for Tailwind processing
-    const tempCssPath = './temp-main.css';
+    // Write temporary CSS file for Tailwind processing
+    const tempCssPath = path.join(__dirname, 'temp-main.css');
     fs.writeFileSync(tempCssPath, sassResult.css);
 
     // Process with Tailwind
-    execSync(`tailwindcss -i ${tempCssPath} -o ../static_compiled/css/main.css --minify`);
+    const tailwindCmd = [
+      'tailwindcss',
+      `-i ${tempCssPath}`,
+      `-o ${path.join(PATHS.staticCompiled, 'css/main.css')}`,
+      IS_PRODUCTION ? '--minify' : ''
+    ].filter(Boolean).join(' ');
+
+    execSync(tailwindCmd, { stdio: 'inherit' });
 
     // Clean up temp file
     fs.unlinkSync(tempCssPath);
 
-    console.log('SCSS and CSS built successfully!');
+    log.success('CSS built successfully');
   } catch (error) {
-    console.error('CSS build failed:', error);
-    process.exit(1);
+    log.error('CSS build failed:');
+    console.error(error);
+    if (!IS_WATCH) process.exit(1);
   }
 };
 
-// Watch SCSS and CSS
-const watchCss = () => {
+const buildJS = async () => {
   try {
-    // Initial build
-    buildCss();
+    log.build('Building JavaScript...');
 
-    // Watch SCSS files
-    fs.watch('../static_src/sass', { recursive: true }, (eventType, filename) => {
-      if (filename && filename.endsWith('.scss')) {
-        console.log(`Detected ${eventType} in SCSS: ${filename}`);
-        buildCss();
-        console.log('SCSS rebuilt!');
-      }
-    });
+    // Check if main.js exists
+    const jsEntryPoint = path.join(PATHS.staticSrc, 'javascript/main.js');
+    if (!fs.existsSync(jsEntryPoint)) {
+      log.warning('JavaScript entry point not found, skipping JS build');
+      return;
+    }
 
-    console.log('Watching SCSS files...');
-  } catch (error) {
-    console.error('CSS watch failed:', error);
-    process.exit(1);
-  }
-};
-
-// Fungsi untuk build assets
-async function buildAssets() {
-  try {
-    const result = await esbuild.build({
-      entryPoints: [`${STATIC_SRC}/js/main.js`],
+    const config = {
+      entryPoints: [jsEntryPoint],
       bundle: true,
-      outdir: `${STATIC_COMPILED}/js`,
-      sourcemap: true,
-      minify: process.env.NODE_ENV === 'production',
-      target: ['es2015'],
+      outfile: path.join(PATHS.staticCompiled, 'js/main.js'),
+      minify: IS_PRODUCTION,
+      sourcemap: !IS_PRODUCTION,
+      target: ['es2020'],
+      format: 'iife',
       loader: {
         '.js': 'jsx',
-        '.svg': 'file',
-        '.png': 'file',
-        '.jpg': 'file',
-        '.gif': 'file',
+        '.jsx': 'jsx',
+        '.ts': 'ts',
+        '.tsx': 'tsx'
       },
-    });
+      define: {
+        'process.env.NODE_ENV': JSON.stringify(process.env.NODE_ENV || 'development')
+      }
+    };
 
-    console.log(chalk.green('✓ Assets built successfully'));
-    return result;
+    await esbuild.build(config);
+    log.success('JavaScript built successfully');
   } catch (error) {
-    console.error(chalk.red('× Build failed:'), error);
-    process.exit(1);
+    log.error('JavaScript build failed:');
+    console.error(error);
+    if (!IS_WATCH) process.exit(1);
   }
-}
+};
 
-// Fungsi untuk watch mode
-async function watchAssets() {
-  // Watch templates
-  const templateWatcher = chokidar.watch(TEMPLATES_DIR, {
-    ignored: /(^|[/\\])\../, // ignore dotfiles
-    persistent: true
+const copyAssets = () => {
+  try {
+    log.build('Copying static assets...');
+
+    // Copy fonts
+    const fontsSource = path.join(PATHS.staticSrc, 'fonts');
+    const fontsDest = path.join(PATHS.staticCompiled, 'fonts');
+    if (fs.existsSync(fontsSource)) {
+      copyDir(fontsSource, fontsDest);
+      log.success('Fonts copied');
+    }
+
+    // Copy images
+    const imagesSource = path.join(PATHS.staticSrc, 'images');
+    const imagesDest = path.join(PATHS.staticCompiled, 'images');
+    if (fs.existsSync(imagesSource)) {
+      copyDir(imagesSource, imagesDest);
+      log.success('Images copied');
+    }
+
+    log.success('Static assets copied successfully');
+  } catch (error) {
+    log.error('Failed to copy static assets:');
+    console.error(error);
+    if (!IS_WATCH) process.exit(1);
+  }
+};
+
+// =============================================================================
+// WATCH TASKS
+// =============================================================================
+
+const watchCSS = () => {
+  const sassWatcher = chokidar.watch(
+    path.join(PATHS.staticSrc, 'sass/**/*.scss'),
+    { ignoreInitial: true }
+  );
+
+  sassWatcher.on('change', (filePath) => {
+    const relativePath = path.relative(process.cwd(), filePath);
+    log.info(`SCSS changed: ${relativePath}`);
+    buildCSS();
   });
 
-  // Event handlers untuk templates
-  templateWatcher
-    .on('change', path => {
-      const relativePath = path.replace(process.cwd(), '');
-      console.log(chalk.yellow(`⟳ Template changed: ${relativePath}`));
-      console.log(chalk.blue('  → Template changes detected, ready for refresh'));
-    })
-    .on('add', path => {
-      const relativePath = path.replace(process.cwd(), '');
-      console.log(chalk.green(`+ New template added: ${relativePath}`));
-    })
-    .on('unlink', path => {
-      const relativePath = path.replace(process.cwd(), '');
-      console.log(chalk.red(`- Template removed: ${relativePath}`));
-    });
+  log.info('Watching SCSS files...');
+};
 
-  // Watch dan build assets
-  const ctx = await esbuild.context({
-    entryPoints: [`${STATIC_SRC}/js/main.js`],
+const watchJS = async () => {
+  const jsEntryPoint = path.join(PATHS.staticSrc, 'javascript/main.js');
+  if (!fs.existsSync(jsEntryPoint)) {
+    log.warning('JavaScript entry point not found, skipping JS watch');
+    return;
+  }
+
+  const config = {
+    entryPoints: [jsEntryPoint],
     bundle: true,
-    outdir: `${STATIC_COMPILED}/js`,
-    sourcemap: true,
+    outfile: path.join(PATHS.staticCompiled, 'js/main.js'),
     minify: false,
-    target: ['es2015'],
+    sourcemap: true,
+    target: ['es2020'],
+    format: 'iife',
     loader: {
       '.js': 'jsx',
-      '.svg': 'file',
-      '.png': 'file',
-      '.jpg': 'file',
-      '.gif': 'file',
-    },
+      '.jsx': 'jsx',
+      '.ts': 'ts',
+      '.tsx': 'tsx'
+    }
+  };
+
+  const ctx = await esbuild.context(config);
+  await ctx.watch();
+  log.info('Watching JavaScript files...');
+};
+
+const watchAssets = () => {
+  // Watch fonts
+  const fontsWatcher = chokidar.watch(
+    path.join(PATHS.staticSrc, 'fonts/**/*'),
+    { ignoreInitial: true }
+  );
+
+  fontsWatcher.on('all', (event, filePath) => {
+    const relativePath = path.relative(process.cwd(), filePath);
+    log.info(`Font ${event}: ${relativePath}`);
+    copyAssets();
   });
 
-  await ctx.watch();
-  console.log(chalk.blue('👀 Watching for changes...'));
-}
+  // Watch images
+  const imagesWatcher = chokidar.watch(
+    path.join(PATHS.staticSrc, 'images/**/*'),
+    { ignoreInitial: true }
+  );
 
-// Build function
-async function build() {
+  imagesWatcher.on('all', (event, filePath) => {
+    const relativePath = path.relative(process.cwd(), filePath);
+    log.info(`Image ${event}: ${relativePath}`);
+    copyAssets();
+  });
+
+  log.info('Watching static assets...');
+};
+
+const watchTemplates = () => {
+  const templateWatcher = chokidar.watch(PATHS.templates, {
+    ignoreInitial: true,
+    ignored: /(^|[/\\])\../
+  });
+
+  templateWatcher.on('change', (filePath) => {
+    const relativePath = path.relative(process.cwd(), filePath);
+    log.info(`Template changed: ${relativePath}`);
+    // Trigger CSS rebuild for Tailwind purging
+    buildCSS();
+  });
+
+  log.info('Watching template files...');
+};
+
+// =============================================================================
+// MAIN FUNCTIONS
+// =============================================================================
+
+const build = async () => {
+  log.info('Starting build process...');
+  
+  // Ensure output directories exist
+  ensureDir(path.join(PATHS.staticCompiled, 'css'));
+  ensureDir(path.join(PATHS.staticCompiled, 'js'));
+  
+  // Run build tasks
+  await Promise.all([
+    buildCSS(),
+    buildJS(),
+    copyAssets()
+  ]);
+  
+  log.success('Build completed successfully!');
+};
+
+const watch = async () => {
+  log.info('Starting watch mode...');
+  
+  // Initial build
+  await build();
+  
+  // Start watchers
+  await Promise.all([
+    watchJS(),
+    watchCSS(),
+    watchAssets(),
+    watchTemplates()
+  ]);
+  
+  log.success('Watch mode started. Watching for changes...');
+};
+
+// =============================================================================
+// EXECUTION
+// =============================================================================
+
+const main = async () => {
   try {
-    // Build JS
-    await esbuild.build(buildConfig);
-    console.log('JS built successfully!');
-    
-    // Build CSS
-    buildCss();
-
-    // Copy static assets
-    copyStaticAssets();
+    if (IS_WATCH) {
+      await watch();
+    } else {
+      await build();
+    }
   } catch (error) {
-    console.error('Build failed:', error);
+    log.error('Build process failed:');
+    console.error(error);
     process.exit(1);
   }
-}
+};
 
-// Watch function
-async function watch() {
-  try {
-    // Watch JS
-    const ctx = await esbuild.context(buildConfig);
-    await ctx.watch();
-    console.log('Watching JS files...');
+// Handle process termination
+process.on('SIGINT', () => {
+  log.info('Build process terminated');
+  process.exit(0);
+});
 
-    // Watch SCSS/CSS
-    watchCss();
+process.on('SIGTERM', () => {
+  log.info('Build process terminated');
+  process.exit(0);
+});
 
-    // Watch static assets
-    watchStaticAssets();
-
-    // Watch templates
-    watchAssets();
-  } catch (error) {
-    console.error('Watch failed:', error);
-    process.exit(1);
-  }
-}
-
-// Handle command line arguments
-const args = process.argv.slice(2);
-if (args.includes('--watch')) {
-  watch();
-} else {
-  build();
-}
+// Run main function
+main();

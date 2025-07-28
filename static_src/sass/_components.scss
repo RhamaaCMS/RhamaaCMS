@@ -1,0 +1,317 @@
+// =============================================================================
+// COMPONENT STYLES
+// =============================================================================
+// Custom component styles that extend Tailwind and Preline
+
+// =============================================================================
+// BUTTONS
+// =============================================================================
+
+.g-btn-group {
+  @apply inline-flex rounded-md shadow-sm;
+  
+  .g-btn {
+    @apply rounded-none first:rounded-l-md last:rounded-r-md;
+    margin-left: -1px;
+    
+    &:first-child {
+      margin-left: 0;
+    }
+    
+    &:focus {
+      z-index: 10;
+    }
+  }
+}
+
+.g-btn-critical {
+  @apply g-btn;
+  background-color: var(--g-color-critical-100);
+  
+  &:hover {
+    background-color: var(--g-color-critical-200);
+  }
+}
+
+.g-btn-critical-outline {
+  @apply g-btn-outline;
+  color: var(--g-color-critical-200);
+  border-color: var(--g-color-critical-100);
+  
+  &:hover {
+    background-color: var(--g-color-surface-button-critical-hover);
+    color: var(--g-color-text-button-critical-outline-hover);
+  }
+}
+
+// =============================================================================
+// FORMS
+// =============================================================================
+
+.g-form-group {
+  @apply space-y-2;
+}
+
+.g-label {
+  @apply block text-sm font-medium;
+  color: var(--g-color-text-label);
+}
+
+.g-label-required::after {
+  content: ' *';
+  color: var(--g-color-critical-200);
+}
+
+.g-input-group {
+  @apply relative;
+  
+  .g-input-icon {
+    @apply absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none;
+    color: var(--g-color-icon-secondary);
+  }
+  
+  .g-input {
+    &.has-icon {
+      @apply pl-10;
+    }
+  }
+}
+
+.g-select {
+  @apply g-input appearance-none bg-no-repeat bg-right;
+  background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='m6 8 4 4 4-4'/%3e%3c/svg%3e");
+  background-position: right 0.5rem center;
+  background-size: 1.5em 1.5em;
+  padding-right: 2.5rem;
+}
+
+.g-textarea {
+  @apply g-input resize-vertical;
+  min-height: 80px;
+}
+
+.g-checkbox,
+.g-radio {
+  @apply w-4 h-4 rounded border-2 transition-colors duration-200;
+  border-color: var(--g-color-border-field-default);
+  background-color: var(--g-color-surface-field);
+  
+  &:checked {
+    background-color: var(--g-color-secondary);
+    border-color: var(--g-color-secondary);
+  }
+  
+  &:focus {
+    @apply g-focus;
+  }
+}
+
+.g-radio {
+  @apply rounded-full;
+}
+
+// =============================================================================
+// NAVIGATION
+// =============================================================================
+
+.g-nav {
+  @apply flex space-x-1;
+  
+  .g-nav-item {
+    @apply px-3 py-2 text-sm font-medium rounded-md transition-colors duration-200;
+    color: var(--g-color-text-label-menus-default);
+    
+    &:hover {
+      background-color: var(--g-color-surface-menu-item-active);
+      color: var(--g-color-text-label-menus-active);
+    }
+    
+    &.active {
+      background-color: var(--g-color-surface-menu-item-active);
+      color: var(--g-color-text-label-menus-active);
+    }
+  }
+}
+
+.g-breadcrumb {
+  @apply flex items-center space-x-2 text-sm;
+  color: var(--g-color-text-meta);
+  
+  .g-breadcrumb-item {
+    @apply flex items-center;
+    
+    &:not(:last-child)::after {
+      content: '/';
+      @apply ml-2 text-gray-400;
+    }
+    
+    a {
+      @apply hover:underline;
+      color: var(--g-color-text-link-default);
+      
+      &:hover {
+        color: var(--g-color-text-link-hover);
+      }
+    }
+  }
+}
+
+// =============================================================================
+// ALERTS & NOTIFICATIONS
+// =============================================================================
+
+.g-alert {
+  @apply p-4 rounded-md border;
+  
+  &.g-alert-info {
+    background-color: var(--g-color-info-50);
+    border-color: var(--g-color-info-100);
+    color: var(--g-color-info-125);
+  }
+  
+  &.g-alert-success {
+    background-color: var(--g-color-positive-50);
+    border-color: var(--g-color-positive-100);
+    color: var(--g-color-positive-100);
+  }
+  
+  &.g-alert-warning {
+    background-color: var(--g-color-warning-50);
+    border-color: var(--g-color-warning-100);
+    color: var(--g-color-warning-100);
+  }
+  
+  &.g-alert-error {
+    background-color: var(--g-color-critical-50);
+    border-color: var(--g-color-critical-100);
+    color: var(--g-color-critical-200);
+  }
+}
+
+.g-toast {
+  @apply fixed top-4 right-4 z-50 p-4 rounded-md shadow-lg max-w-sm;
+  background-color: var(--g-color-surface-tooltip);
+  color: var(--g-color-white);
+  animation: slideDown 0.3s ease-out;
+  
+  &.g-toast-success {
+    background-color: var(--g-color-positive-100);
+  }
+  
+  &.g-toast-warning {
+    background-color: var(--g-color-warning-100);
+  }
+  
+  &.g-toast-error {
+    background-color: var(--g-color-critical-100);
+  }
+}
+
+// =============================================================================
+// TABLES
+// =============================================================================
+
+.g-table {
+  @apply w-full border-collapse;
+  
+  th {
+    @apply px-4 py-3 text-left text-sm font-medium border-b;
+    background-color: var(--g-color-surface-dashboard-panel);
+    border-color: var(--g-color-border-furniture);
+    color: var(--g-color-text-label);
+  }
+  
+  td {
+    @apply px-4 py-3 text-sm border-b;
+    border-color: var(--g-color-border-furniture);
+    color: var(--g-color-text-context);
+  }
+  
+  tbody tr {
+    &:hover {
+      background-color: var(--g-color-surface-field-inactive);
+    }
+  }
+}
+
+// =============================================================================
+// MODALS & OVERLAYS
+// =============================================================================
+
+.g-modal-overlay {
+  @apply fixed inset-0 z-40 bg-black bg-opacity-50;
+  animation: fadeIn 0.2s ease-in-out;
+}
+
+.g-modal {
+  @apply fixed inset-0 z-50 flex items-center justify-center p-4;
+  
+  .g-modal-content {
+    @apply w-full max-w-md rounded-lg shadow-xl;
+    background-color: var(--g-color-surface-page);
+    animation: slideUp 0.3s ease-out;
+  }
+  
+  .g-modal-header {
+    @apply px-6 py-4 border-b;
+    border-color: var(--g-color-border-furniture);
+  }
+  
+  .g-modal-body {
+    @apply px-6 py-4;
+  }
+  
+  .g-modal-footer {
+    @apply px-6 py-4 border-t flex justify-end space-x-3;
+    border-color: var(--g-color-border-furniture);
+  }
+}
+
+// =============================================================================
+// LOADING STATES
+// =============================================================================
+
+.g-spinner {
+  @apply inline-block w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin;
+}
+
+.g-skeleton {
+  @apply animate-pulse bg-gray-200 rounded;
+  
+  &.g-skeleton-text {
+    @apply h-4;
+  }
+  
+  &.g-skeleton-title {
+    @apply h-6;
+  }
+  
+  &.g-skeleton-avatar {
+    @apply w-10 h-10 rounded-full;
+  }
+}
+
+// =============================================================================
+// UTILITIES
+// =============================================================================
+
+.g-sr-only {
+  @apply sr-only;
+}
+
+.g-truncate {
+  @apply truncate;
+}
+
+.g-text-muted {
+  color: var(--g-color-text-meta);
+}
+
+.g-text-error {
+  color: var(--g-color-text-error);
+}
+
+.g-border-dashed {
+  @apply border-dashed;
+  border-color: var(--g-color-border-furniture);
+}

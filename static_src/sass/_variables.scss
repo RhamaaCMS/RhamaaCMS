@@ -1,0 +1,198 @@
+// =============================================================================
+// GLOBAL DESIGN SYSTEM VARIABLES
+// =============================================================================
+// Based on Wagtail admin design system with --g prefix for global usage
+// Color palette inspired by RHAMAA brand identity
+
+:root {
+  // =============================================================================
+  // STATIC COLORS - Core Brand Colors
+  // =============================================================================
+  
+  // Brand Colors from RHAMAA Logo
+  --g-color-primary: #1a4a47;        // Deep teal from logo
+  --g-color-primary-200: #2d5a56;    // Lighter teal accent
+  --g-color-secondary: #b8860b;      // Gold from RHAMAA text
+  --g-color-secondary-600: #9a7209;  // Darker gold
+  --g-color-secondary-400: #d4a00f;  // Medium gold
+  --g-color-secondary-100: #f4e4a6;  // Light gold
+  --g-color-secondary-75: #f7ebb8;   // Very light gold
+  --g-color-secondary-50: #faf5d9;   // Pale gold background
+  
+  // Neutral Colors
+  --g-color-black: #000000;
+  --g-color-white: #ffffff;
+  --g-color-grey-800: #1d1d1d;
+  --g-color-grey-700: #222222;
+  --g-color-grey-600: #262626;
+  --g-color-grey-500: #333333;
+  --g-color-grey-400: #5c5c5c;
+  --g-color-grey-200: #929292;
+  --g-color-grey-150: #c8c8c8;
+  --g-color-grey-100: #e0e0e0;
+  --g-color-grey-50: #f6f6f8;
+  
+  // Status Colors
+  --g-color-info-125: #186076;
+  --g-color-info-100: #1d7792;
+  --g-color-info-75: #80b6c7;
+  --g-color-info-50: #e2f5fc;
+  
+  --g-color-positive-100: #1b8666;
+  --g-color-positive-50: #e0fbf4;
+  
+  --g-color-warning-100: #faa500;
+  --g-color-warning-75: #fdd074;
+  --g-color-warning-50: #fff5d8;
+  
+  --g-color-critical-200: #ca3b3b;
+  --g-color-critical-100: #fd5765;
+  --g-color-critical-50: #fef0f0;
+  
+  // =============================================================================
+  // SURFACE COLORS - Contextual Backgrounds
+  // =============================================================================
+  
+  --g-color-surface-page: var(--g-color-white);
+  --g-color-surface-field: var(--g-color-white);
+  --g-color-surface-field-inactive: var(--g-color-grey-50);
+  --g-color-surface-header: var(--g-color-primary);
+  --g-color-surface-menus: var(--g-color-white);
+  --g-color-surface-menu-item-active: var(--g-color-secondary-50);
+  --g-color-surface-tooltip: var(--g-color-grey-800);
+  --g-color-surface-button-default: var(--g-color-secondary);
+  --g-color-surface-button-hover: var(--g-color-secondary-400);
+  --g-color-surface-button-inactive: var(--g-color-grey-150);
+  --g-color-surface-button-outline-hover: var(--g-color-secondary-50);
+  --g-color-surface-button-critical-hover: var(--g-color-critical-50);
+  --g-color-surface-status-label: var(--g-color-grey-100);
+  --g-color-surface-info-panel: var(--g-color-info-50);
+  --g-color-surface-dashboard-panel: var(--g-color-grey-50);
+  
+  // =============================================================================
+  // TEXT COLORS
+  // =============================================================================
+  
+  --g-color-text-button: var(--g-color-white);
+  --g-color-text-label-menus-default: var(--g-color-grey-600);
+  --g-color-text-label-menus-active: var(--g-color-primary);
+  --g-color-text-label: var(--g-color-grey-600);
+  --g-color-text-context: var(--g-color-grey-500);
+  --g-color-text-meta: var(--g-color-grey-400);
+  --g-color-text-placeholder: var(--g-color-grey-400);
+  --g-color-text-link-default: var(--g-color-secondary);
+  --g-color-text-link-hover: var(--g-color-secondary-600);
+  --g-color-text-button-outline-default: var(--g-color-secondary);
+  --g-color-text-button-outline-hover: var(--g-color-secondary-600);
+  --g-color-text-highlight: var(--g-color-secondary);
+  --g-color-text-error: var(--g-color-critical-200);
+  --g-color-text-button-critical-outline-hover: var(--g-color-critical-200);
+  --g-color-text-status-label: var(--g-color-grey-600);
+  --g-color-text-link-info: var(--g-color-info-100);
+  
+  // =============================================================================
+  // ICON COLORS
+  // =============================================================================
+  
+  --g-color-icon-primary: var(--g-color-primary);
+  --g-color-icon-primary-hover: var(--g-color-primary-200);
+  --g-color-icon-secondary: var(--g-color-secondary);
+  --g-color-icon-secondary-hover: var(--g-color-secondary-400);
+  
+  // =============================================================================
+  // BORDER COLORS
+  // =============================================================================
+  
+  --g-color-border-furniture: var(--g-color-grey-100);
+  --g-color-border-button-small-outline-default: var(--g-color-grey-200);
+  --g-color-border-field-default: var(--g-color-grey-150);
+  --g-color-border-field-inactive: var(--g-color-grey-100);
+  --g-color-border-field-hover: var(--g-color-secondary);
+  --g-color-border-button-outline-default: var(--g-color-secondary);
+  --g-color-border-button-outline-hover: var(--g-color-secondary-600);
+  --g-color-border-interactive-more-contrast: var(--g-color-grey-200);
+  --g-color-border-interactive-more-contrast-hover: var(--g-color-grey-400);
+  --g-color-border-interactive-more-contrast-dark-bg: var(--g-color-grey-400);
+  --g-color-border-interactive-more-contrast-dark-bg-hover: var(--g-color-grey-200);
+  --g-color-border-furniture-more-contrast: var(--g-color-grey-150);
+  
+  // =============================================================================
+  // MISC COLORS
+  // =============================================================================
+  
+  --g-color-focus: var(--g-color-secondary);
+  --g-color-box-shadow-md: rgba(0, 0, 0, 0.1);
+  
+  // =============================================================================
+  // DENSITY & SPACING
+  // =============================================================================
+  
+  --g-density-factor: 1;
+  --g-spacing-xs: calc(0.25rem * var(--g-density-factor));
+  --g-spacing-sm: calc(0.5rem * var(--g-density-factor));
+  --g-spacing-md: calc(1rem * var(--g-density-factor));
+  --g-spacing-lg: calc(1.5rem * var(--g-density-factor));
+  --g-spacing-xl: calc(2rem * var(--g-density-factor));
+  --g-spacing-2xl: calc(3rem * var(--g-density-factor));
+  
+  // =============================================================================
+  // TYPOGRAPHY
+  // =============================================================================
+  
+  --g-font-family-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --g-font-family-mono: 'JetBrains Mono', 'Fira Code', Consolas, monospace;
+  
+  --g-font-size-xs: 0.75rem;
+  --g-font-size-sm: 0.875rem;
+  --g-font-size-base: 1rem;
+  --g-font-size-lg: 1.125rem;
+  --g-font-size-xl: 1.25rem;
+  --g-font-size-2xl: 1.5rem;
+  --g-font-size-3xl: 1.875rem;
+  --g-font-size-4xl: 2.25rem;
+  
+  --g-line-height-tight: 1.25;
+  --g-line-height-normal: 1.5;
+  --g-line-height-relaxed: 1.75;
+  
+  // =============================================================================
+  // BORDER RADIUS
+  // =============================================================================
+  
+  --g-border-radius-sm: 0.25rem;
+  --g-border-radius-md: 0.375rem;
+  --g-border-radius-lg: 0.5rem;
+  --g-border-radius-xl: 0.75rem;
+  --g-border-radius-2xl: 1rem;
+  --g-border-radius-full: 9999px;
+  
+  // =============================================================================
+  // SHADOWS
+  // =============================================================================
+  
+  --g-shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+  --g-shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  --g-shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+  --g-shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+}
+
+// =============================================================================
+// DARK THEME OVERRIDES
+// =============================================================================
+
+[data-theme="dark"] {
+  --g-color-surface-page: var(--g-color-grey-800);
+  --g-color-surface-field: var(--g-color-grey-700);
+  --g-color-surface-field-inactive: var(--g-color-grey-600);
+  --g-color-surface-menus: var(--g-color-grey-700);
+  --g-color-surface-dashboard-panel: var(--g-color-grey-700);
+  
+  --g-color-text-label-menus-default: var(--g-color-grey-150);
+  --g-color-text-label: var(--g-color-grey-150);
+  --g-color-text-context: var(--g-color-grey-200);
+  --g-color-text-meta: var(--g-color-grey-400);
+  
+  --g-color-border-furniture: var(--g-color-grey-600);
+  --g-color-border-field-default: var(--g-color-grey-500);
+  --g-color-border-field-inactive: var(--g-color-grey-600);
+}
