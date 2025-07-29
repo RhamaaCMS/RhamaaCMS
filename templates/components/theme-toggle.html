@@ -1,39 +1,41 @@
-{% verbatim %}
-<label class="relative w-fit flex justify-center items-center group p-1 cursor-pointer">
-    <span class="sr-only">
-        Theme toggle
-    </span>
-    <input 
-        data-theme-toggle
-        type="checkbox" 
-        class="cursor-pointer border-[1px] 
-        border-grey-500 
-        rounded-full 
-        absolute 
-        w-full 
-        h-full 
-        peer 
-        checked:border-mackerel-200
-        appearance-none" 
-    />
-    <span class="
-        w-10
-        h-4 
-        flex items-center flex-shrink-0 
-        py-1
-        rounded-full 
-        duration-300 ease-in-out 
-        peer-checked:bg-mackerel-300
-        after:w-4 
-        after:h-4 
-        after:bg-black 
-        after:rounded-full 
-        after:shadow-md 
-        after:duration-300 
-        peer-checked:after:translate-x-6
-        peer-checked:after:bg-white
-        "
-        >
-    </span>
-</label>
-{% endverbatim %}
+{% comment %}
+Theme Toggle Component using Preline HSThemeSwitch
+Usage: {% include "components/theme-toggle.html" with variant="button" %}
+{% endcomment %}
+
+{% if variant == "switch" %}
+    <!-- Toggle Switch Style -->
+    <label class="relative inline-flex items-center cursor-pointer">
+        <input type="checkbox" data-hs-theme-switch class="sr-only peer">
+        <div class="relative w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-secondary-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-secondary"></div>
+        <span class="ml-3 text-sm font-medium text-gray-900 hs-dark-mode-active:text-white">
+            <span class="hs-dark-mode-active:hidden">Dark Mode</span>
+            <span class="hidden hs-dark-mode-active:inline">Light Mode</span>
+        </span>
+    </label>
+{% else %}
+    <!-- Button Style (Default) -->
+    <!-- Dark Mode Button (shows when in light mode) -->
+    <button
+        data-hs-theme-click-value="dark"
+        type="button"
+        aria-label="Switch to dark mode"
+        class="hs-dark-mode-active:hidden inline-flex items-center justify-center p-2 rounded-md text-current hover:bg-white/10 transition-colors duration-200"
+    >
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"></path>
+        </svg>
+    </button>
+
+    <!-- Light Mode Button (shows when in dark mode) -->
+    <button
+        data-hs-theme-click-value="default"
+        type="button"
+        aria-label="Switch to light mode"
+        class="hidden hs-dark-mode-active:inline-flex items-center justify-center p-2 rounded-md text-current hover:bg-white/10 transition-colors duration-200"
+    >
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"></path>
+        </svg>
+    </button>
+{% endif %}

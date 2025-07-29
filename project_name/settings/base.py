@@ -82,9 +82,9 @@ RHAMAA_APPS = get_apps_from_folder('apps')
 # Manually defined apps (utils, third-party, Django built-ins)
 BASE_APPS = [
     "utils.images",
-    "utils.navigation", 
-    "utils.search",
+    "utils.navigation",
     "utils",
+    "wagtailseo",
     "wagtail.contrib.settings",
     "wagtail.contrib.forms",
     "wagtail.contrib.redirects",
@@ -188,8 +188,6 @@ TIME_ZONE = "UTC"
 USE_I18N = True
 
 USE_TZ = True
-
-AUTH_USER_MODEL = "users.User"
 
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/4.2/howto/static-files/

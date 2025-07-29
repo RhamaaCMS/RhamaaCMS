@@ -19,7 +19,7 @@ Design system RhamaaCMS:
 ## 🏗️ Architecture
 
 ```
-DevApps/static_src/sass/
+{{ project_name }}/static_src/sass/
 ├── main.scss           # Entry point
 ├── _variables.scss     # CSS custom properties
 ├── _components.scss    # Component styles

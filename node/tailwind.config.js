@@ -1,6 +1,6 @@
 /** @type {import('tailwindcss').Config} */
 module.exports = {
-  darkMode: ['class', '[data-theme="dark"]'],
+  darkMode: 'class', // Preline uses html.dark class
   content: [
     "../templates/**/*.html",
     "../utils/templates/**/*.html", 

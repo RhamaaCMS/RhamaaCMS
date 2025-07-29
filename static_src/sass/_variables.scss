@@ -180,7 +180,8 @@
 // DARK THEME OVERRIDES
 // =============================================================================
 
-[data-theme="dark"] {
+[data-theme="dark"],
+html.dark {
   --g-color-surface-page: var(--g-color-grey-800);
   --g-color-surface-field: var(--g-color-grey-700);
   --g-color-surface-field-inactive: var(--g-color-grey-600);

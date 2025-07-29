@@ -127,7 +127,13 @@ const buildJS = async () => {
       },
       define: {
         'process.env.NODE_ENV': JSON.stringify(process.env.NODE_ENV || 'development')
-      }
+      },
+      // Allow bundling node_modules
+      external: [],
+      // Resolve node_modules
+      resolveExtensions: ['.js', '.jsx', '.ts', '.tsx'],
+      // Add node_modules to resolve paths
+      nodePaths: [path.join(__dirname, 'node_modules')]
     };
 
     await esbuild.build(config);
@@ -158,6 +164,8 @@ const copyAssets = () => {
       copyDir(imagesSource, imagesDest);
       log.success('Images copied');
     }
+
+
 
     log.success('Static assets copied successfully');
   } catch (error) {
@@ -206,7 +214,13 @@ const watchJS = async () => {
       '.jsx': 'jsx',
       '.ts': 'ts',
       '.tsx': 'tsx'
-    }
+    },
+    // Allow bundling node_modules
+    external: [],
+    // Resolve node_modules
+    resolveExtensions: ['.js', '.jsx', '.ts', '.tsx'],
+    // Add node_modules to resolve paths
+    nodePaths: [path.join(__dirname, 'node_modules')]
   };
 
   const ctx = await esbuild.context(config);

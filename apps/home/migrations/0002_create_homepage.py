@@ -1,5 +1,4 @@
 from django.db import migrations
-from django.conf import settings
 
 
 def create_homepage(apps, schema_editor):
@@ -14,7 +13,7 @@ def create_homepage(apps, schema_editor):
     Page.objects.filter(id=2).delete()
 
     # Create content type for homepage model
-    homepage_content_type, _ = ContentType.objects.get_or_create(
+    homepage_content_type, __ = ContentType.objects.get_or_create(
         model="homepage", app_label="home"
     )
 
@@ -27,11 +26,11 @@ def create_homepage(apps, schema_editor):
         path="00010001",
         depth=2,
         numchild=0,
-        url_path="/home/"
+        url_path="/home/",
     )
 
     # Create a site with the new homepage set as the root
-    Site.objects.create(hostname="localhost", site_name="{{ project_name }}", root_page=homepage, is_default_site=True)
+    Site.objects.create(hostname="localhost", root_page=homepage, is_default_site=True)
 
 
 def remove_homepage(apps, schema_editor):
@@ -50,13 +49,13 @@ def remove_homepage(apps, schema_editor):
 class Migration(migrations.Migration):
 
     run_before = [
-        ('wagtailcore', '0053_locale_model'),
+        ("wagtailcore", "0053_locale_model"),
     ]
 
     dependencies = [
-        ('home', '0001_initial'),
+        ("home", "0001_initial"),
     ]
 
     operations = [
-        migrations.RunPython(create_homepage, migrations.RunPython.noop),
+        migrations.RunPython(create_homepage, remove_homepage),
     ]

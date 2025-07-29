@@ -315,3 +315,79 @@
   @apply border-dashed;
   border-color: var(--g-color-border-furniture);
 }
+// =====
+========================================================================
+// STREAMFIELD COMPONENTS
+// =============================================================================
+
+.streamfield-content {
+  @apply space-y-6;
+}
+
+.streamfield-block {
+  @apply w-full;
+}
+
+/* Rich Text Styling */
+.rich-text {
+  @apply prose prose-lg max-w-none;
+  
+  h3 {
+    @apply text-2xl font-bold text-gray-900 mt-8 mb-4;
+  }
+  
+  h4 {
+    @apply text-xl font-semibold text-gray-900 mt-6 mb-3;
+  }
+  
+  p {
+    @apply text-gray-700 leading-relaxed mb-4;
+  }
+  
+  ul, ol {
+    @apply ml-6 mb-4;
+  }
+  
+  li {
+    @apply mb-2;
+  }
+  
+  a {
+    @apply text-blue-600 hover:text-blue-800 underline;
+  }
+}
+
+/* Image Block Styling */
+.image-block {
+  @apply my-8;
+  
+  img {
+    @apply w-full h-auto rounded-lg shadow-md;
+  }
+  
+  .image-caption {
+    @apply text-sm text-gray-600 mt-2 text-center italic;
+  }
+}
+
+/* Quote Block Styling */
+.quote-block {
+  @apply border-l-4 border-blue-500 pl-6 py-4 my-8 bg-gray-50 rounded-r-lg;
+  
+  .quote-text {
+    @apply text-lg text-gray-800 font-medium italic mb-2;
+  }
+  
+  .quote-attribution {
+    @apply text-sm text-gray-600 font-normal not-italic;
+    
+    &:before {
+      content: "— ";
+    }
+  }
+}
+
+/* Link Styling */
+.inline-link {
+  @apply text-blue-600 hover:text-blue-800 underline font-medium;
+}
