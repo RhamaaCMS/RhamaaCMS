@@ -172,6 +172,24 @@
   }
 },
 {
+  "model": "auth.user",
+  "pk": 1,
+  "fields": {
+    "password": "pbkdf2_sha256$870000$Qugfm2jPqhciKwYAxOQtmF$K3JgBDDFvgVejA7a8ue44jP2XJ32OkYsWXQ4guSKwDc=",
+    "last_login": "2025-07-30T09:05:55.655Z",
+    "is_superuser": true,
+    "username": "rhamaa",
+    "first_name": "",
+    "last_name": "",
+    "email": "",
+    "is_staff": true,
+    "is_active": true,
+    "date_joined": "2025-07-30T09:05:39.042Z",
+    "groups": [],
+    "user_permissions": []
+  }
+},
+{
   "model": "wagtailcore.grouppagepermission",
   "pk": 1,
   "fields": {
@@ -283,7 +301,7 @@
     "path": "0001",
     "depth": 1,
     "numchild": 1,
-    "translation_key": "51d3a787-463d-4d42-923e-f4eafc172146",
+    "translation_key": "03ff034e-77af-453b-a441-b6a62ef4af5f",
     "locale": 1,
     "latest_revision": null,
     "live": true,
@@ -320,7 +338,7 @@
     "path": "00010001",
     "depth": 2,
     "numchild": 0,
-    "translation_key": "864c61a3-60f4-4a4c-9f19-2b870fbe4a18",
+    "translation_key": "f431458f-a931-4ff3-a468-98d515b02a85",
     "locale": 1,
     "latest_revision": null,
     "live": true,

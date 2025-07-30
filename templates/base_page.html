@@ -16,11 +16,14 @@
 {% endblock meta_tags %}
 
 {% block header %}
-    {% include "navigation/header.html" %}
+    <div class="navigation-header">
+        {% include "navigation/header.html" %}
+    </div>
 {% endblock header %}
 
-
 {% block footer %}
-    {% include "navigation/footer.html" %}
+    <div class="navigation-footer">
+        {% include "navigation/footer.html" %}
+    </div>
 {% endblock footer %}
 {% endverbatim %}

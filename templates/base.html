@@ -37,6 +37,21 @@
         {% block extra_css %}
         
         {% endblock %}
+
+        <!-- Preline Theme Initialization Script -->
+        <script>
+            // Initialize theme before page loads to prevent flash
+            (function() {
+                const theme = localStorage.getItem('hs_theme') || 'default';
+                if (theme === 'dark' || (theme === 'auto' && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+                    document.documentElement.classList.add('dark');
+                    document.documentElement.setAttribute('data-theme', 'dark');
+                } else {
+                    document.documentElement.classList.remove('dark');
+                    document.documentElement.setAttribute('data-theme', 'light');
+                }
+            })();
+        </script>
     </head>
 
     <body class="g-surface-page min-h-screen flex flex-col {% block body_class %}{% endblock %}">
@@ -58,7 +73,7 @@
         {% block footer %}{% endblock footer %}
 
         
-        <scrt type="text/javascript" src="{% static 'js/main.js' %}"></scrt>ipt>
+        <script type="text/javascript" src="{% static 'js/main.js' %}"></script>
 
         {% block extra_js %}
         
