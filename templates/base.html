@@ -1,4 +1,4 @@
-{% verbatim %}
+
 {% load static wagtailcore_tags wagtailuserbar %}
 
 <!DOCTYPE html>
@@ -7,16 +7,16 @@
         <meta charset="utf-8" />
         
         {# wagtail-seo metadata - includes title, Open Graph, Twitter Cards, etc. #}
-        {%% include "wagtailseo/meta.html" %%}
+        {% include "wagtailseo/meta.html" %}
         
         <meta name="viewport" content="width=device-width, initial-scale=1" />
 
-        {%% comment %%}
+        {% comment %}
         Additional robots meta tag for search visibility control
-        {%% endcomment %%}
-        {%% if not page.appear_in_search_results %%}
+        {% endcomment %}
+        {% if not page.appear_in_search_results %}
             <meta name="robots" content="noindex, nofollow">
-        {%% endif %%}
+        {% endif %}
 
         <!-- TODO update -->
         <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -25,47 +25,46 @@
 
 
         
-        {%% if request.in_preview_panel %%}
+        {% if request.in_preview_panel %}
         <base target="_blank">
-        {%% endif %%}
+        {% endif %}
 
-        {%% block meta_tags %%}{%% endblock %%}
+        {% block meta_tags %}{% endblock %}
 
         
-        <link rel="stylesheet" type="text/css" href="{%% static 'css/main.css' %%}">
+        <link rel="stylesheet" type="text/css" href="{% static 'css/main.css' %}">
 
-        {%% block extra_css %%}
+        {% block extra_css %}
         
-        {%% endblock %%}
+        {% endblock %}
     </head>
 
-    <body class="g-surface-page min-h-screen flex flex-col {%% block body_class %%}{%% endblock %%}">
+    <body class="g-surface-page min-h-screen flex flex-col {% block body_class %}{% endblock %}">
         <!-- Skip Link -->
         <a href="#main-content" class="skip-link g-sr-only g-focus:not-sr-only g-focus:absolute g-focus:top-4 g-focus:left-4 g-btn z-50">
             Skip to main content
         </a>
         
-        {%% wagtailuserbar %%}
+        {% wagtailuserbar %}
 
-        {%% block header %%}{%% endblock header %%}
+        {% block header %}{% endblock header %}
 
         <main class="flex-1" id="main-content">
-            {%% block content %%}
+            {% block content %}
 
-            {%% endblock content %%}
+            {% endblock content %}
         </main>
 
-        {%% block footer %%}{%% endblock footer %%}
+        {% block footer %}{% endblock footer %}
 
         
-        <scrt type="text/javascript" src="{%% static 'js/main.js' %%}"></scrt>ipt>
+        <scrt type="text/javascript" src="{% static 'js/main.js' %}"></scrt>ipt>
 
-        {%% block extra_js %%}
+        {% block extra_js %}
         
-        {%% endblock %%}
+        {% endblock %}
         
         {# wagtail-seo structured data - includes JSON-LD for search engines #}
-        {%% include "wagtailseo/struct_data.html" %%}
+        {% include "wagtailseo/struct_data.html" %}
     </body>
 </html>
-{% endverbatim %}
