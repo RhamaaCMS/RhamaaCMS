@@ -1,0 +1,111 @@
+site_name: Wagtail News Template
+site_description: A comprehensive Wagtail CMS starter template for news and content websites
+site_url: https://your-domain.com
+repo_url: https://github.com/rhamaa/RhamaaCMS
+repo_name: rhamaa/RhamaaCMS
+
+theme:
+  name: material
+  language: en
+  palette:
+    # Palette toggle for light mode
+    - scheme: default
+      primary: teal
+      accent: teal
+      toggle:
+        icon: material/brightness-7
+        name: Switch to dark mode
+    # Palette toggle for dark mode
+    - scheme: slate
+      primary: teal
+      accent: teal
+      toggle:
+        icon: material/brightness-4
+        name: Switch to light mode
+  features:
+    - navigation.tabs
+    - navigation.sections
+    - navigation.expand
+    - navigation.path
+    - navigation.top
+    - search.highlight
+    - search.share
+    - toc.follow
+    - content.code.copy
+    - content.code.annotate
+
+plugins:
+  - search
+  - i18n:
+      docs_structure: suffix
+      fallback_to_default: true
+      reconfigure_material: true
+      reconfigure_search: true
+      languages:
+        - locale: en
+          default: true
+          name: English
+          build: true
+        - locale: id
+          name: Bahasa Indonesia
+          build: true
+          nav_translations:
+            Home: Beranda
+            Getting Started: Memulai
+            Installation: Instalasi
+            Configuration: Konfigurasi
+            Development: Pengembangan
+            Deployment: Deployment
+            API Reference: Referensi API
+            Contributing: Kontribusi
+
+markdown_extensions:
+  - pymdownx.highlight:
+      anchor_linenums: true
+      line_spans: __span
+      pygments_lang_class: true
+  - pymdownx.inlinehilite
+  - pymdownx.snippets
+  - pymdownx.superfences
+  - admonition
+  - pymdownx.details
+  - pymdownx.tabbed:
+      alternate_style: true
+  - attr_list
+  - md_in_html
+  - pymdownx.emoji:
+      emoji_index: !!python/name:material.extensions.emoji.twemoji
+      emoji_generator: !!python/name:material.extensions.emoji.to_svg
+
+nav:
+  - Home: index.md
+  - Getting Started:
+    - Installation: getting-started/installation.md
+    - Quick Start: getting-started/quick-start.md
+    - Project Structure: getting-started/project-structure.md
+  - Configuration:
+    - Settings: configuration/settings.md
+    - Database: configuration/database.md
+    - Static Files: configuration/static-files.md
+    - Media Storage: configuration/media-storage.md
+  - Development:
+    - Models: development/models.md
+    - Blocks: development/blocks.md
+    - Templates: development/templates.md
+    - Frontend: development/frontend.md
+  - Deployment:
+    - Fly.io: deployment/flyio.md
+    - Divio Cloud: deployment/divio.md
+    - Docker: deployment/docker.md
+  - API Reference:
+    - Models: api/models.md
+    - Blocks: api/blocks.md
+    - Utils: api/utils.md
+  - Contributing: contributing.md
+
+extra:
+  social:
+    - icon: fontawesome/brands/github
+      link: https://github.com/rhamaa/RhamaaCMS
+    - icon: fontawesome/brands/twitter
+      link: https://twitter.com/wagtail
