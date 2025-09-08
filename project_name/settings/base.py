@@ -46,17 +46,37 @@ def import_app_settings(folder_path):
     if os.path.exists(apps_dir):
         for item in os.listdir(apps_dir):
             app_path = os.path.join(apps_dir, item)
-            if (os.path.isdir(app_path) and 
-                os.path.exists(os.path.join(app_path, '__init__.py'))):
+            if os.path.isdir(app_path) and os.path.exists(
+                os.path.join(app_path, "__init__.py")
+            ):
                 try:
                     # Import app settings if exists
                     module_name = f"{folder_path}.{item}.settings"
-                    module = __import__(module_name, fromlist=[''])
+                    module = __import__(module_name, fromlist=[""])
 
                     # Import all uppercase attributes (Django convention)
                     for attr in dir(module):
                         if attr.isupper():
-                            globals()[attr] = getattr(module, attr)
+                            new_val = getattr(module, attr)
+                            # Merge behavior: if the setting already exists and both are lists/tuples or dicts,
+                            # perform an additive merge; otherwise overwrite.
+                            if attr in globals():
+                                current_val = globals()[attr]
+                                # Merge sequences (lists/tuples)
+                                if isinstance(current_val, (list, tuple)) and isinstance(
+                                    new_val, (list, tuple)
+                                ):
+                                    # Ensure list type for consistency
+                                    merged = list(current_val) + list(new_val)
+                                    globals()[attr] = merged
+                                    continue
+                                # Merge dicts
+                                if isinstance(current_val, dict) and isinstance(new_val, dict):
+                                    merged = {**current_val, **new_val}
+                                    globals()[attr] = merged
+                                    continue
+                            # Default: overwrite
+                            globals()[attr] = new_val
 
                 except ImportError:
                     # App doesn't have settings.py, skip
@@ -122,6 +142,8 @@ MIDDLEWARE = [
     "wagtail.contrib.redirects.middleware.RedirectMiddleware",
 ]
 
+# Import and merge settings from all apps within the 'apps' folder
+import_app_settings("apps")
 
 ROOT_URLCONF = "{{ project_name }}.urls"
 
