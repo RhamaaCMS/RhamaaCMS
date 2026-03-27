@@ -1,0 +1,156 @@
+/* =============================================================================
+   RHAMAA CMS — Main Stylesheet  |  Tailwind v4 + Preline v4
+   Brand palette: Deep Forest Green #0D4A3C  ×  Gold #C8A96E  ×  White
+   ============================================================================= */
+
+@import "tailwindcss";
+@plugin "@tailwindcss/forms";
+@plugin "@tailwindcss/typography";
+
+/* Tell Tailwind v4 where to scan for utility classes (paths relative to this file) */
+@source "../../{{ project_name }}/templates/**/*.html";
+@source "../../apps/**/templates/**/*.html";
+@source "../../static_src/javascript/**/*.js";
+
+/* =============================================================================
+   THEME TOKENS
+   ============================================================================= */
+@theme {
+  /* Brand Green Scale */
+  --color-brand-950: #071e17;
+  --color-brand-900: #0A3328;
+  --color-brand-800: #0D4A3C;
+  --color-brand-700: #145C4B;
+  --color-brand-600: #1E7A63;
+  --color-brand-500: #29977A;
+  --color-brand-400: #3DB896;
+  --color-brand-300: #6CCFB4;
+  --color-brand-200: #A8E3D4;
+  --color-brand-100: #D4F1E9;
+  --color-brand-50:  #EDF9F5;
+
+  /* Gold Accent Scale */
+  --color-gold-700: #7A5C22;
+  --color-gold-600: #9E7A3C;
+  --color-gold-500: #C8A96E;
+  --color-gold-400: #D9BE8D;
+  --color-gold-300: #E8D4B0;
+  --color-gold-100: #F7EFD8;
+
+  /* Surface Neutrals */
+  --color-surface-950: #0C0C0B;
+  --color-surface-900: #1A1A18;
+  --color-surface-800: #2A2A27;
+  --color-surface-700: #3A3A36;
+  --color-surface-200: #E4E4DF;
+  --color-surface-100: #F0F0EB;
+  --color-surface-50:  #FAFAF7;
+
+  /* Typography */
+  --font-display: "Cormorant Garamond", Georgia, "Times New Roman", serif;
+  --font-sans:    "DM Sans", system-ui, -apple-system, sans-serif;
+  --font-mono:    "JetBrains Mono", "Fira Code", monospace;
+}
+
+/* =============================================================================
+   BASE LAYER
+   ============================================================================= */
+@layer base {
+  html {
+    scroll-behavior: smooth;
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
+
+  body {
+    font-family: var(--font-sans);
+    background-color: var(--color-surface-50);
+    color: var(--color-surface-900);
+    line-height: 1.65;
+  }
+
+  /* Apply display font to all headings */
+  h1, h2, h3, h4, h5, h6 {
+    font-family: var(--font-display);
+    line-height: 1.2;
+    letter-spacing: -0.01em;
+  }
+
+  /* Custom scrollbar */
+  ::-webkit-scrollbar { width: 6px; }
+  ::-webkit-scrollbar-track { background: var(--color-surface-100); }
+  ::-webkit-scrollbar-thumb { background: var(--color-brand-400); border-radius: 99px; }
+
+  ::selection { background-color: var(--color-brand-200); color: var(--color-brand-900); }
+}
+
+
+/* =============================================================================
+   UTILITY LAYER
+   — Animation delays (Tailwind v4 has no built-in animation-delay utilities)
+   — Gradient text helpers
+   ============================================================================= */
+@layer utilities {
+
+  /* Entrance animation — attach to any element */
+  .animate-fade-up {
+    animation: fade-up 0.65s cubic-bezier(0.22, 1, 0.36, 1) both;
+  }
+
+  /* Stagger delays */
+  .animation-delay-100 { animation-delay: 100ms; }
+  .animation-delay-200 { animation-delay: 200ms; }
+  .animation-delay-300 { animation-delay: 300ms; }
+  .animation-delay-400 { animation-delay: 400ms; }
+  .animation-delay-500 { animation-delay: 500ms; }
+  .animation-delay-600 { animation-delay: 600ms; }
+  .animation-delay-700 { animation-delay: 700ms; }
+
+  /* Gentle float loop — use on decorative images */
+  .animate-float {
+    animation: float 4.5s ease-in-out infinite;
+  }
+
+  /* Shake — use on form error fields */
+  .animate-shake {
+    animation: shake 0.45s cubic-bezier(0.36, 0.07, 0.19, 0.97) both;
+  }
+
+  /* Gradient text helpers */
+  .text-gradient-brand {
+    background: linear-gradient(135deg, var(--color-brand-300), var(--color-gold-400));
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+
+  .text-gradient-gold {
+    background: linear-gradient(135deg, var(--color-gold-300), var(--color-gold-500));
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+
+  /* Header/footer visibility on welcome page is handled via
+     Django template block overrides in home_page.html, not CSS. */
+}
+
+/* =============================================================================
+   KEYFRAMES
+   ============================================================================= */
+@keyframes fade-up {
+  from { opacity: 0; transform: translateY(24px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes float {
+  0%, 100% { transform: translateY(0); }
+  50%       { transform: translateY(-8px); }
+}
+
+@keyframes shake {
+  10%, 90% { transform: translateX(-1px); }
+  20%, 80% { transform: translateX(2px); }
+  30%, 50%, 70% { transform: translateX(-4px); }
+  40%, 60% { transform: translateX(4px); }
+}

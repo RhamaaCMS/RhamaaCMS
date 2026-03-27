@@ -17,3 +17,5 @@ node_modules/
 coverage
 .python-version
 .vim
+/dist
+/static_compiled

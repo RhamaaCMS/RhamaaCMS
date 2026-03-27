@@ -1,24 +1,14 @@
-from .base import *  # noqa
+from .base import *
 
 DEBUG = False
 
+# ManifestStaticFilesStorage is recommended in production, to prevent
+# outdated JavaScript / CSS assets being served from cache
+# (e.g. after a Wagtail upgrade).
+# See https://docs.djangoproject.com/en/6.0/ref/contrib/staticfiles/#manifeststaticfilesstorage
+STORAGES["staticfiles"]["BACKEND"] = "django.contrib.staticfiles.storage.ManifestStaticFilesStorage"
 
-# Security configuration
-
-# Ensure that the session cookie is only sent by browsers under an HTTPS connection.
-# https://docs.djangoproject.com/en/stable/ref/settings/#session-cookie-secure
-SESSION_COOKIE_SECURE = True
-
-# Ensure that the CSRF cookie is only sent by browsers under an HTTPS connection.
-# https://docs.djangoproject.com/en/stable/ref/settings/#csrf-cookie-secure
-CSRF_COOKIE_SECURE = True
-
-# Allow the redirect importer to work in load-balanced / cloud environments.
-# https://docs.wagtail.io/en/v2.13/reference/settings.html#redirects
-WAGTAIL_REDIRECTS_FILE_STORAGE = "cache"
-
-# Force HTTPS redirect (enabled by default!)
-SECURE_SSL_REDIRECT = True
-
-SECURE_CONTENT_TYPE_NOSNIFF = True
-SECURE_REFERRER_POLICY = "no-referrer-when-downgrade"
+try:
+    from .local import *
+except ImportError:
+    pass

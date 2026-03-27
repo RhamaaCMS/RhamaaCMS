@@ -1,156 +1,197 @@
-# Wagtail News Template
+# RhamaaCMS
 
-This project template is designed for creating [Wagtail](https://wagtail.org) builds quickly, intended for developers to bootstrap their Wagtail site development using `wagtail start --template=`. The template comes with pre-defined pages, blocks, functionalities, and fixtures to streamline the initial setup process.
+A clean, production-ready **Wagtail CMS** starter template styled with **Tailwind CSS v4** and **Preline UI v4**. Intended as a reference template that demonstrates clear Tailwind and Preline patterns — all component styling lives directly in HTML templates as utility classes, with no custom CSS component layer.
 
-## Getting Started
+---
 
-1. **Check that you have an appropriate version of Python 3** You want to make sure that you have a [compatible version](https://docs.wagtail.org/en/stable/releases/upgrading.html#compatible-django-python-versions) installed:
+## Stack
 
-   ```sh
-   python --version
-   # Or:
-   python3 --version
-   # **On Windows** (cmd.exe, with the Python Launcher for Windows):
-   py --version
-   ```
+| Layer | Technology | Version |
+|---|---|---|
+| CMS Framework | [Wagtail](https://wagtail.org/) on [Django](https://djangoproject.com/) | Wagtail 7.3 / Django 6.0 |
+| CSS | [Tailwind CSS v4](https://tailwindcss.com/) via `@tailwindcss/postcss` | v4.1 |
+| UI Components | [Preline UI](https://preline.co/) | v4.0 |
+| JS Bundler | [esbuild](https://esbuild.github.io/) | v0.25 |
+| Package Manager | [pnpm](https://pnpm.io/) | v8+ |
+| Fonts | Cormorant Garamond (display) · DM Sans (body) · JetBrains Mono | via Google Fonts |
 
-2. **Create a Virtual Environment**: Set up a virtual environment to isolate your project dependencies. These instructions are for GNU/Linux or MacOS, but there are [other operating systems in the Wagtail docs](https://docs.wagtail.org/en/stable/getting_started/tutorial.html#create-and-activate-a-virtual-environment).
+---
 
-   ```bash
-   python -m venv myproject/env
-   source myproject/env/bin/activate
-   ```
+## Quick Start
 
-3. **Navigate to Project Directory**: Move into the newly created project directory.
+### 1. Clone & set up Python environment
 
-   ```bash
-   cd myproject
-   ```
+```bash
+git clone <repo-url> {{ project_name }}
+cd {{ project_name }}
 
-4. **Install Wagtail**: Install the Wagtail CMS package using pip.
+python -m venv .venv
+.venv\Scripts\activate        # Windows
+# source .venv/bin/activate   # macOS / Linux
 
-   ```bash
-   pip install wagtail
-   ```
+pip install -r requirements.txt
+```
 
-5. **Initialize Project**: Use the `wagtail start` command to create a new project based on the Wagtail Starter Kit template.
+### 2. Set up a local settings override (optional but recommended)
 
-   ```bash
-   wagtail start --template=https://github.com/wagtail/news-template/archive/refs/heads/main.zip myproject .
-   ```
+Create `{{ project_name }}/settings/local.py` — it is automatically imported by both `dev.py` and `production.py` if present:
 
-6. **Install Project Dependencies**: Install the project's dependencies into a virtual environment.
+```python
+SECRET_KEY = "your-secret-key-here"
+ALLOWED_HOSTS = ["127.0.0.1", "localhost"]
+```
 
-   ```bash
-   pip install -r requirements.txt
-   ```
+> Generate a secret key:
+> ```bash
+> python -c "from django.core.management.utils import get_random_secret_key; print(get_random_secret_key())"
+> ```
 
-All commands from now on should be run from inside the virtual environment.
+### 3. Initialize the database
 
-8. **Load Dummy Data**: Load in some dummy data to populate the site with some content.
+```bash
+python manage.py migrate
+python manage.py createsuperuser
+```
 
-   ```bash
-   make load-data
-   ```
+### 4. Build frontend assets
 
-9. **Start the Server**: Start the Django development server.
+```bash
+cd node
+pnpm install
+pnpm run build
+cd ..
+```
 
-   ```bash
-   make start
-   ```
+### 5. Run the development server
 
-10. **Access the Site and Admin**: Once the server is running, you can view the site at `localhost:8000` and access the Wagtail admin interface at `localhost:8000/admin`. Log in with the default credentials provided by :
+```bash
+python manage.py runserver
+```
 
-    - Username: admin
-    - Password: password
+| URL | Description |
+|---|---|
+| `http://127.0.0.1:8000/` | Landing page |
+| `http://127.0.0.1:8000/admin/` | Wagtail CMS admin |
+| `http://127.0.0.1:8000/django-admin/` | Django admin |
 
-### Deploying
+---
 
-Once you have your own copy of the template, you can extend and configure it however you like.
+## How a Request Is Served
 
-To get it deployed, follow the instructions below for your hosting provider of choice.
+```
+Browser Request
+    │
+    ▼
+Django Middleware Stack
+ ├── SecurityMiddleware
+ ├── SessionMiddleware
+ ├── CsrfViewMiddleware
+ ├── AuthenticationMiddleware
+ └── wagtail.contrib.redirects.middleware.RedirectMiddleware
+    │
+    ▼
+URL Router  ({{ project_name }}/urls.py)
+ ├── django-admin/  →  Django admin
+ ├── admin/         →  Wagtail CMS admin
+ ├── documents/     →  Wagtail document downloads
+ └── ""  (catch-all) →  Wagtail page serving
+    │
+    ▼
+Wagtail looks up URL in Page tree
+ └── Root page → HomePage (apps/home/models.py)
+    │
+    ▼
+Template: apps/home/templates/home/home_page.html
+ └── extends base.html
+      └── {% block content %} includes welcome_page.html
+```
 
-Don't see your preference here? Contributions are always welcome!
+---
 
-#### fly.io
+## Project Structure
 
-Before you can deploy to [fly.io](https://fly.io/), you will need an account and the `fly` CLI tool will need to be [installed on your machine](https://fly.io/docs/flyctl/install/).
+```
+{{ project_name }}/
+├── apps/
+│   └── home/                        # Home / landing page app
+│       ├── models.py                # HomePage(Page) model
+│       └── templates/home/
+│           ├── home_page.html       # Extends base.html; suppresses header/footer
+│           └── welcome_page.html    # Full-screen landing section (pure Tailwind)
+├── utils/                           # Shared utilities
+│   ├── models.py                    # Abstract base models
+│   ├── images/                      # Custom image model
+│   ├── navigation/                  # Navigation snippets
+│   └── templatetags/                # Custom template tags
+├── docs/                            # Extended documentation
+│   ├── 01-setup.md
+│   ├── 02-development.md
+│   ├── 03-styling.md
+│   └── 04-apps.md
+├── node/                            # Frontend build tooling
+│   ├── esbuild.js                   # Build orchestrator (CSS + JS + assets)
+│   ├── postcss.config.js            # PostCSS → @tailwindcss/postcss
+│   ├── tailwind.config.js           # Minimal config (theme lives in main.css)
+│   └── package.json
+├── static_src/                      # Source assets — edit these
+│   ├── css/main.css                 # Tailwind v4 entry: @theme, @source, utilities
+│   ├── javascript/main.js           # Preline v4, confetti, scroll animations
+│   └── images/logo.png
+├── static_compiled/                 # Build output — gitignored, auto-generated
+│   ├── css/main.css
+│   ├── js/main.js
+│   └── images/
+├── {{ project_name }}/
+│   ├── settings/
+│   │   ├── base.py                  # Shared / production-safe settings
+│   │   ├── dev.py                   # DEBUG=True, permissive ALLOWED_HOSTS
+│   │   ├── production.py            # ManifestStaticFilesStorage
+│   │   └── local.py                 # (gitignored) per-machine overrides
+│   ├── templates/
+│   │   ├── base.html                # Master layout: fonts, navbar, footer, JS
+│   │   ├── 404.html                 # Branded 404 (extends base.html)
+│   │   └── 500.html                 # Standalone 500 error page
+│   └── urls.py
+└── manage.py
+```
 
-1. In the root directory of your project (the one with a `fly.toml` file), run `fly launch`
-   1. When prompted about copying the existing `fly.toml` file to a new app, choose "Yes".
+---
 
-> [!CAUTION]
-> Choosing "No" (the default) here will result in a broken deployment, as the `fly.toml` file requires configuration needed for the project to run correctly.
+## Frontend Build
 
-2. When prompted about continuing the setup in the web UI, or tweak the generated settings, choose "No".
-   1. The "Region" will be selected automatically. If you wish to change this, choose "Yes" instead, and modify the region in the browser.
-3. Once the launch is successful, you'll need to [generate a secret key](https://realorangeone.github.io/django-secret-key-generator/)
-   1. This can be done using `fly secrets set SECRET_KEY=<key>`, or through the web UI.
-4. Finally (optional), load in the dummy data, to help get you started
-   1. `fly ssh console -u wagtail -C "./manage.py load_initial_data"`
+All commands run from the `node/` directory.
 
-> [!NOTE]
-> If you receive "error connecting to SSH server" when running the above command, It likely means the `fly.toml` above wasn't picked up correctly. Unfortunately, you'll need to delete your application and start again, resetting the changes to the `fly.toml` file.
-> If the error still persists, check the application logs.
+```bash
+# Development build (with source maps)
+pnpm run build
 
-You can now visit your wagtail site at the URL provided by `fly`. We strongly recommend setting strong password for your user.
+# Production build (minified)
+pnpm run build:prod
 
-The database and user-uploaded media are stored in the attached volume. To save costs and improve efficiency, the app will automatically stop when not in use, but will automatically restart when the browser loads.
+# Watch mode — rebuilds CSS/JS on file change
+pnpm run watch
 
-#### Divio Cloud
+# Run both watch mode AND Django dev server together
+pnpm run start
+```
 
-[![Deploy to Divio](https://docs.divio.com/deploy-to-divio.svg)](https://control.divio.com/app/new/?template_url=https://github.com/wagtail/news-template/archive/refs/heads/main.zip)
+> **Important:** Tailwind v4 only generates CSS classes that appear in scanned files.
+> The `@source` directives in `static_src/css/main.css` tell Tailwind which templates to scan.
+> After adding a new app with templates in a non-standard path, add a corresponding `@source` line.
 
-Easily deploy your application to [Divio Cloud](https://www.divio.com/) using the steps below:
+---
 
-1. **Getting Started**
-   Follow the [Getting Started](#getting-started) instructions to set up your project locally.
+## Documentation
 
-2. **Push Your Repository**
-   Upload your project to GitHub or another Git provider.
+| Guide | Description |
+|---|---|
+| [01-setup.md](docs/01-setup.md) | Prerequisites, environment setup, production checklist |
+| [02-development.md](docs/02-development.md) | Build pipeline deep-dive, watch mode, debug tips |
+| [03-styling.md](docs/03-styling.md) | Modifying colors/fonts, component patterns, animations |
+| [04-apps.md](docs/04-apps.md) | Creating Wagtail Page models, templates, StreamField |
 
-3. **Create a New Application**
-   Log in to the [Divio Control Panel](https://control.divio.com/) and create a new application and
+---
 
-   - Choose "**I already have a repository**.".
-   - Connect your Git provider and proceed by clicking "**Next**.".
-   - Give your application a suitable name and select the "**Free Trial**" plan, then click **"Create application."**.
+## License
 
-   Your application will be created with two environments: **Test** and **Live**.
-
-4. **Add a Database service**
-   From the **Services** view of your application, add a [database](https://docs.divio.com/introduction/aldryn-django/django-05-database/) service.
-
-5. **Deploy Your Application**
-   From the "Environments" view, click "**Deploy**" on the **Test** environment. Once the deployment completes, access your site using the "Env URL" link.
-
-6. **Additional Configuration**
-   **Migrations and Environment Variables**:
-
-   To automatically run migrations on every deployment, add a "Release command" within the **Settings** section of your application with the value `python manage.py migrate`.
-You can add additional commands as needed.
-
-   Use the **Env Variables** section to set variables such as `SECRET_KEY` ([generator](https://realorangeone.github.io/django-secret-key-generator/)) for the test and live environments.
-
-   **Media Storage**: From the **Services** view of your application, add an [object storage](https://docs.divio.com/reference/work-media-storage/) to store user-uploaded files.
-
-## Contributing
-
-To customize this template, you can either make changes directly or backport changes from a generated project (via the `wagtail start` command) by following these steps:
-
-1. Create a new project using the provided instructions in the [Getting Started](#getting-started) section.
-2. Make changes within the new project.
-3. Once you've completed your changes, you'll need to copy them over to the original project template, making sure to:
-
-   3.1. Replace occurrences of `myproject` with `{{ project_name }}`
-
-   3.2. Rename the project directory from `myproject` to `project_name` (without double curly brackets this time).
-
-   3.3. Wrap template code (`.html` files under the templates directory), with a [verbatim tag](https://docs.djangoproject.com/en/5.0/ref/templates/builtins/#std-templatetag-verbatim) or similar [templatetag](https://docs.djangoproject.com/en/5.0/ref/templates/builtins/#templatetag) to prevent template tags being rendered on `wagtail start` ([see django's rendering warning](https://docs.djangoproject.com/en/5.0/ref/django-admin/#render-warning)).
-
-4. Update compiled static assets using `npm run build:prod`.
-5. Update fixtures using `make dump-data`
-
-Make sure to test any changes by reviewing them against a newly created project, by following the [Getting Started](#getting-started) instructions again.
-
-Happy coding with Wagtail! If you encounter any issues or have suggestions for improvement, feel free to contribute or open an issue.
+MIT
