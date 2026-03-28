@@ -1,6 +1,6 @@
 # RhamaaCMS
 
-A clean, production-ready **Wagtail CMS** starter template styled with **Tailwind CSS v4** and **Preline UI v4**. Intended as a reference template that demonstrates clear Tailwind and Preline patterns — all component styling lives directly in HTML templates as utility classes, with no custom CSS component layer.
+A clean, production-ready **Wagtail CMS** starter template styled with **Tailwind CSS v4** and **Preline UI v4**, extended with full **real-time IoT capabilities** via MQTT and Django Channels. Intended as a base template for IoT-connected web applications — all component styling lives directly in HTML templates as utility classes, with no custom CSS component layer.
 
 ---
 
@@ -14,6 +14,11 @@ A clean, production-ready **Wagtail CMS** starter template styled with **Tailwin
 | JS Bundler | [esbuild](https://esbuild.github.io/) | v0.25 |
 | Package Manager | [pnpm](https://pnpm.io/) | v8+ |
 | Fonts | Cormorant Garamond (display) · DM Sans (body) · JetBrains Mono | via Google Fonts |
+| **IoT / Real-time** | | |
+| ASGI Server | [Uvicorn](https://www.uvicorn.org/) | latest |
+| WebSocket | [Django Channels](https://channels.readthedocs.io/) | v4 |
+| MQTT Client | [aiomqtt](https://github.com/sbtinstruments/aiomqtt) | latest |
+| Default Broker | [EMQX Public Sandbox](https://www.emqx.com/en/mqtt/public-mqtt5-broker) | `broker.emqx.io:1883` |
 
 ---
 
@@ -64,15 +69,19 @@ cd ..
 
 ### 5. Run the development server
 
+The project uses **ASGI** (required for WebSocket/MQTT). Use `uvicorn` instead of `runserver`:
+
 ```bash
-python manage.py runserver
+uvicorn {{ project_name }}.asgi:application --reload --lifespan on --port 8000
 ```
 
 | URL | Description |
 |---|---|
 | `http://127.0.0.1:8000/` | Landing page |
 | `http://127.0.0.1:8000/admin/` | Wagtail CMS admin |
+| `http://127.0.0.1:8000/admin/mqtt/` | IoT / MQTT dashboard |
 | `http://127.0.0.1:8000/django-admin/` | Django admin |
+| `ws://127.0.0.1:8000/ws/mqtt/dashboard/` | WebSocket endpoint |
 
 ---
 
@@ -113,11 +122,21 @@ Template: apps/home/templates/home/home_page.html
 ```
 {{ project_name }}/
 ├── apps/
-│   └── home/                        # Home / landing page app
-│       ├── models.py                # HomePage(Page) model
-│       └── templates/home/
-│           ├── home_page.html       # Extends base.html; suppresses header/footer
-│           └── welcome_page.html    # Full-screen landing section (pure Tailwind)
+│   ├── home/                        # Home / landing page app
+│   │   ├── models.py                # HomePage(Page) model
+│   │   └── templates/home/
+│   │       ├── home_page.html       # Extends base.html; suppresses header/footer
+│   │       └── welcome_page.html    # Full-screen landing section (IoT + Tailwind)
+│   └── mqtt/                        # IoT / MQTT module
+│       ├── client.py                # AsyncMQTTClient singleton (aiomqtt)
+│       ├── consumers.py             # WebSocket consumer (Django Channels)
+│       ├── middleware.py            # ASGI lifespan wrapper
+│       ├── models.py                # MQTTMessage + MQTTSettings + MQTTTopic
+│       ├── signals.py               # mqtt_message_received / published / changed
+│       ├── views.py                 # Dashboard + REST publish API
+│       ├── wagtail_hooks.py         # Sidebar registration
+│       └── templates/mqtt/
+│           └── dashboard.html       # Real-time MQTT dashboard
 ├── utils/                           # Shared utilities
 │   ├── models.py                    # Abstract base models
 │   ├── images/                      # Custom image model
@@ -127,7 +146,8 @@ Template: apps/home/templates/home/home_page.html
 │   ├── 01-setup.md
 │   ├── 02-development.md
 │   ├── 03-styling.md
-│   └── 04-apps.md
+│   ├── 04-apps.md
+│   └── 05-mqtt.md                   # IoT / MQTT integration guide
 ├── node/                            # Frontend build tooling
 │   ├── esbuild.js                   # Build orchestrator (CSS + JS + assets)
 │   ├── postcss.config.js            # PostCSS → @tailwindcss/postcss
@@ -142,9 +162,10 @@ Template: apps/home/templates/home/home_page.html
 │   ├── js/main.js
 │   └── images/
 ├── {{ project_name }}/
+│   ├── asgi.py                      # ASGI entry: Channels + MQTTLifespanMiddleware
 │   ├── settings/
-│   │   ├── base.py                  # Shared / production-safe settings
-│   │   ├── dev.py                   # DEBUG=True, permissive ALLOWED_HOSTS
+│   │   ├── base.py                  # Shared settings (MQTT env vars here)
+│   │   ├── dev.py                   # DEBUG=True, loads .env
 │   │   ├── production.py            # ManifestStaticFilesStorage
 │   │   └── local.py                 # (gitignored) per-machine overrides
 │   ├── templates/
@@ -189,6 +210,7 @@ pnpm run start
 | [02-development.md](docs/02-development.md) | Build pipeline deep-dive, watch mode, debug tips |
 | [03-styling.md](docs/03-styling.md) | Modifying colors/fonts, component patterns, animations |
 | [04-apps.md](docs/04-apps.md) | Creating Wagtail Page models, templates, StreamField |
+| [05-mqtt.md](docs/05-mqtt.md) | IoT/MQTT integration — broker config, dashboard, signals, WebSocket API |
 
 ---
 

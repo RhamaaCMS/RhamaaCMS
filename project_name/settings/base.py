@@ -25,6 +25,8 @@ BASE_DIR = PROJECT_DIR.parent
 
 INSTALLED_APPS = [
     "apps.home",
+    "apps.mqtt",
+    "channels",
     "utils",
     "utils.images",
     "utils.navigation",
@@ -84,6 +86,7 @@ TEMPLATES = [
 ]
 
 WSGI_APPLICATION = "{{ project_name }}.wsgi.application"
+ASGI_APPLICATION = "{{ project_name }}.asgi.application"
 
 
 # Database
@@ -161,6 +164,39 @@ STORAGES = {
 # Django sets a maximum of 1000 fields per form by default, but particularly complex page models
 # can exceed this limit within Wagtail's page editor.
 DATA_UPLOAD_MAX_NUMBER_FIELDS = 10_000
+
+
+# ---------------------------------------------------------------------------
+# Django Channels — channel layer
+# InMemoryChannelLayer is sufficient for a single-worker deployment.
+# For multi-worker production, switch to channels_redis.core.RedisChannelLayer:
+#   pip install channels-redis
+#   CHANNEL_LAYERS = {
+#       "default": {
+#           "BACKEND": "channels_redis.core.RedisChannelLayer",
+#           "CONFIG": {"hosts": [("localhost", 6379)]},
+#       }
+#   }
+# ---------------------------------------------------------------------------
+CHANNEL_LAYERS = {
+    "default": {
+        "BACKEND": "channels.layers.InMemoryChannelLayer",
+    }
+}
+
+
+# ---------------------------------------------------------------------------
+# MQTT — broker connection (topics & retention are in the MQTTSettings model)
+# Configure via .env — see .env.example
+# Default: EMQX public broker (development only — messages are public!)
+# ---------------------------------------------------------------------------
+import os as _os
+
+MQTT_ENABLED = _os.environ.get("MQTT_ENABLED", "True") == "True"
+MQTT_BROKER_HOST = _os.environ.get("MQTT_BROKER_HOST", "broker.emqx.io")
+MQTT_BROKER_PORT = int(_os.environ.get("MQTT_BROKER_PORT", "1883"))
+MQTT_USERNAME = _os.environ.get("MQTT_USERNAME") or None
+MQTT_PASSWORD = _os.environ.get("MQTT_PASSWORD") or None
 
 
 # Wagtail settings

@@ -1,0 +1,559 @@
+{% verbatim %}
+{% extends "wagtailadmin/base.html" %}
+{% load i18n %}
+
+{% block titletag %}MQTT Dashboard{% endblock %}
+
+{% block extra_css %}
+<style>
+/* ── Layout ── */
+.mqtt-two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; margin-top: 1.5rem; }
+@media (max-width: 960px) { .mqtt-two-col { grid-template-columns: 1fr; } }
+
+/* ── Stat strip ── */
+.mqtt-stats { display: flex; gap: 1rem; margin-bottom: 1.5rem; flex-wrap: wrap; }
+.mqtt-stat {
+    flex: 1; min-width: 110px;
+    border: 1px solid var(--w-color-border-field, #d9d9d9);
+    border-radius: 6px; padding: 0.9rem 1rem; text-align: center;
+    background: var(--w-color-surface-page, #fff);
+}
+.mqtt-stat .sv { font-size: 1.65rem; font-weight: 700; line-height: 1; }
+.mqtt-stat .sl { font-size: 0.68rem; text-transform: uppercase; letter-spacing: .05em; color: var(--w-color-text-meta, #757575); margin-top: 3px; }
+
+/* ── Status badge ── */
+.mqtt-badge {
+    display: inline-flex; align-items: center; gap: 5px;
+    font-size: 0.73rem; font-weight: 600; padding: 2px 10px;
+    border-radius: 20px; border: 1px solid currentColor;
+}
+.mqtt-badge.ok  { color: #1a7f4b; background: #d3f4e3; }
+.mqtt-badge.err { color: #b01717; background: #fce8e8; }
+.mqtt-badge .dot { width: 7px; height: 7px; border-radius: 50%; background: currentColor; }
+
+/* ── Live feed ── */
+.mqtt-feed {
+    height: 280px; overflow-y: auto;
+    background: var(--w-color-surface-field, #f5f5f5);
+    border: 1px solid var(--w-color-border-field, #d9d9d9);
+    border-radius: 4px; padding: 8px 10px;
+    font-family: ui-monospace, "Cascadia Code", monospace;
+    font-size: 11px; line-height: 1.65;
+    color: var(--w-color-text-label, #262626);
+}
+.feed-row { display: flex; gap: 6px; padding: 2px 0; border-bottom: 1px solid var(--w-color-border-field, #e8e8e8); flex-wrap: wrap; }
+.feed-row:last-child { border-bottom: none; }
+.feed-row .f-ts  { color: var(--w-color-text-meta, #aaa); white-space: nowrap; flex-shrink: 0; }
+.feed-row .f-in  { color: #1563ad; font-weight: 700; flex-shrink: 0; }
+.feed-row .f-out { color: #1a7f4b; font-weight: 700; flex-shrink: 0; }
+.feed-row .f-topic  { color: #6836b5; flex-shrink: 0; max-width: 180px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.feed-row .f-payload { color: var(--w-color-text-label, #262626); word-break: break-all; }
+.feed-empty { text-align: center; padding-top: 90px; color: var(--w-color-text-meta, #999); font-style: italic; }
+
+/* ── Tabs ── */
+.mqtt-tabs { display: flex; gap: 0; border-bottom: 2px solid var(--w-color-border-field, #d9d9d9); margin-bottom: 1rem; }
+.mqtt-tab {
+    padding: 6px 16px; font-size: 0.82rem; font-weight: 600; cursor: pointer;
+    border: none; background: none; color: var(--w-color-text-meta, #757575);
+    border-bottom: 2px solid transparent; margin-bottom: -2px;
+}
+.mqtt-tab.active { color: var(--w-color-interactive, #007d7e); border-bottom-color: var(--w-color-interactive, #007d7e); }
+.mqtt-tab-panel { display: none; }
+.mqtt-tab-panel.active { display: block; }
+
+/* ── Form fields ── */
+.mf { margin-bottom: 0.8rem; }
+.mf label { display: block; font-size: 0.8rem; font-weight: 600; margin-bottom: 3px; }
+.mf input, .mf textarea, .mf select {
+    width: 100%; box-sizing: border-box;
+    font-family: ui-monospace, monospace; font-size: 12px;
+    border: 1px solid var(--w-color-border-field, #d9d9d9);
+    border-radius: 4px; padding: 6px 8px;
+    background: var(--w-color-surface-page, #fff);
+    color: var(--w-color-text-label, #262626);
+}
+.mf select { font-family: inherit; }
+
+/* ── Subscription quick-view ── */
+.sub-list { list-style: none; margin: 0; padding: 0; }
+.sub-list li {
+    display: flex; align-items: flex-start; gap: 8px;
+    padding: 8px 10px; border-radius: 4px; margin-bottom: 5px;
+    background: var(--w-color-surface-field, #f5f5f5);
+    border: 1px solid var(--w-color-border-field, #d9d9d9);
+}
+.sub-list li .sub-dot { flex-shrink: 0; margin-top: 3px; font-size: 0.6rem; color: #ccc; transition: color .3s; }
+.sub-list li .sub-dot.active { color: #1a7f4b; }
+.sub-list li .sub-body { flex: 1; min-width: 0; }
+.sub-list li .sub-topic { font-family: ui-monospace, monospace; font-size: 0.82rem; color: #6836b5; }
+.sub-list li .sub-name { font-size: 0.78rem; font-weight: 600; color: var(--w-color-text-label, #262626); margin-bottom: 1px; }
+.sub-list li .sub-desc { font-size: 0.72rem; color: var(--w-color-text-meta, #888); }
+.sub-empty { color: var(--w-color-text-meta, #999); font-style: italic; font-size: 0.82rem; padding: 8px 0; }
+
+/* ── History ── */
+.dir-in  { color: #1563ad; font-weight: 700; font-family: monospace; font-size: 0.75rem; }
+.dir-out { color: #1a7f4b; font-weight: 700; font-family: monospace; font-size: 0.75rem; }
+.history-new { animation: hl-fade 1.5s ease-out; }
+@keyframes hl-fade {
+    from { background: color-mix(in srgb, #1563ad 12%, transparent); }
+    to   { background: transparent; }
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="nice-padding">
+
+{# ── Header ── #}
+<div style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:10px; margin-bottom:1.4rem;">
+    <h1 style="margin:0; display:flex; align-items:center; gap:10px; font-size:1.35rem;">
+        MQTT Dashboard
+        <span class="mqtt-badge {% if broker_connected %}ok{% else %}err{% endif %}" id="broker-badge">
+            <span class="dot"></span>
+            <span id="broker-badge-text">{% if broker_connected %}Connected{% else %}Disconnected{% endif %}</span>
+        </span>
+        <code style="font-size:0.7rem; color:var(--w-color-text-meta,#888);">{{ broker_host }}:{{ broker_port }}</code>
+    </h1>
+    <a href="{% url 'mqtt:dashboard' %}" class="button button-secondary button-small" type="button">↺ Refresh page</a>
+</div>
+
+{# ── Stats ── #}
+<div class="mqtt-stats">
+    <div class="mqtt-stat">
+        <div class="sv" id="stat-broker" style="color:{% if broker_connected %}#1a7f4b{% else %}#b01717{% endif %};">
+            {% if broker_connected %}●{% else %}○{% endif %}
+        </div>
+        <div class="sl">Broker</div>
+    </div>
+    <div class="mqtt-stat">
+        <div class="sv" style="color:#1563ad;" id="stat-in">{{ total_in }}</div>
+        <div class="sl">Received</div>
+    </div>
+    <div class="mqtt-stat">
+        <div class="sv" style="color:#1a7f4b;" id="stat-out">{{ total_out }}</div>
+        <div class="sl">Published</div>
+    </div>
+    <div class="mqtt-stat">
+        <div class="sv" id="stat-total">{{ total_messages }}</div>
+        <div class="sl">Total</div>
+    </div>
+</div>
+
+{# ── Live Feed + Right Panel ── #}
+<div class="mqtt-two-col">
+
+    {# Left — Live Feed #}
+    <section>
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
+            <h2 style="font-size:0.9rem; margin:0;">
+                Live Feed
+                <span style="font-weight:400; font-size:0.75rem; color:var(--w-color-text-meta,#999);">real-time</span>
+            </h2>
+            <button class="button button-secondary button-small" type="button" id="clear-feed-btn">Clear</button>
+        </div>
+        <div class="mqtt-feed" id="mqtt-feed">
+            <div class="feed-empty" id="feed-empty">Waiting for messages…</div>
+        </div>
+    </section>
+
+    {# Right — Tabbed: Publish | Subscriptions #}
+    <section>
+        <div class="mqtt-tabs">
+            <button class="mqtt-tab active" type="button" onclick="mqttSwitchTab(this,'publish')">▶ Publish</button>
+            <button class="mqtt-tab" type="button" onclick="mqttSwitchTab(this,'subscriptions')">⊕ Subscriptions</button>
+        </div>
+
+        {# Publish tab #}
+        <div class="mqtt-tab-panel active" id="tab-publish">
+            <div class="mf">
+                <label for="pub-topic">Topic <span style="color:#b01717">*</span></label>
+                <input type="text" id="pub-topic" placeholder="e.g. devices/room1/cmd" autocomplete="off" />
+            </div>
+            <div class="mf">
+                <label for="pub-payload">Payload</label>
+                <textarea id="pub-payload" rows="3" placeholder='{"state": "ON", "brightness": 80}'></textarea>
+            </div>
+            <div class="mf">
+                <label for="pub-qos">QoS</label>
+                <select id="pub-qos">
+                    <option value="0">0 — At most once (fire &amp; forget)</option>
+                    <option value="1">1 — At least once</option>
+                    <option value="2">2 — Exactly once</option>
+                </select>
+            </div>
+            <button class="button" style="width:100%;" type="button" onclick="mqttPublish()">▶ Publish</button>
+            <p id="pub-status" style="margin:5px 0 0; font-size:0.8rem; min-height:16px;"></p>
+
+            <div style="margin-top:1rem; padding:10px 12px; background:var(--w-color-surface-field,#f5f5f5); border:1px solid var(--w-color-border-field,#d9d9d9); border-radius:4px; font-size:0.78rem;">
+                <b style="font-size:0.68rem; text-transform:uppercase; letter-spacing:.05em; color:var(--w-color-text-meta,#999);">Broker</b>
+                <div style="margin-top:4px;"><code>{{ broker_host }}:{{ broker_port }}</code></div>
+                {% if mqtt_settings.auto_delete_enabled %}
+                <div style="margin-top:4px; color:#7b5100;">⏱ Auto-delete after {{ mqtt_settings.auto_delete_after_days }} day(s)</div>
+                {% endif %}
+                <div style="margin-top:6px; color:var(--w-color-text-meta,#888); font-size:0.72rem;">Manage subscriptions in the ⊕ Subscriptions tab →</div>
+            </div>
+        </div>
+
+        {# Subscriptions tab — quick view #}
+        <div class="mqtt-tab-panel" id="tab-subscriptions">
+            <p style="font-size:0.78rem; color:var(--w-color-text-meta,#888); margin:0 0 0.8rem;">
+                Quick view of topics configured in Settings.
+                Green dot = currently subscribed to broker.
+            </p>
+
+            <ul class="sub-list" id="sub-list">
+                {% for t in subscribed_topics %}
+                <li data-topic="{{ t.topic }}">
+                    <span class="sub-dot" title="checking…">●</span>
+                    <div class="sub-body">
+                        {% if t.name %}<div class="sub-name">{{ t.name }}</div>{% endif %}
+                        <div class="sub-topic">{{ t.topic }}</div>
+                        {% if t.description %}<div class="sub-desc">{{ t.description }}</div>{% endif %}
+                    </div>
+                </li>
+                {% empty %}
+                <li style="padding:8px 0; color:var(--w-color-text-meta,#999); font-style:italic; font-size:0.82rem; list-style:none;">
+                    No topics configured yet.
+                </li>
+                {% endfor %}
+            </ul>
+
+            <div style="display:flex; gap:6px; margin-top:0.9rem; flex-wrap:wrap; align-items:center;">
+                <button class="button button-secondary button-small" type="button" id="reload-subs-btn"
+                        onclick="mqttReloadSubs()">↺ Reload from Settings</button>
+                <a href="{{ mqtt_settings_url }}" class="button button-secondary button-small">
+                    ⚙ Manage in Settings
+                </a>
+            </div>
+            <p id="sub-status" style="font-size:0.78rem; min-height:14px; margin:6px 0 0;"></p>
+        </div>
+    </section>
+</div>
+
+{# ── Message History ── #}
+<div style="margin-top:2rem;">
+    <div style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:8px; margin-bottom:0.7rem;">
+        <h2 style="font-size:0.9rem; margin:0;">
+            Message History
+            <span id="history-live-dot" style="display:inline-block; width:7px; height:7px; border-radius:50%;
+                background:#1a7f4b; margin-left:5px; vertical-align:middle; opacity:0; transition:opacity .3s;"
+                title="Live update"></span>
+        </h2>
+        <div style="display:flex; gap:6px; flex-wrap:wrap; align-items:center;">
+            <form method="get" style="display:flex; gap:5px; align-items:center; flex-wrap:wrap;">
+                <select name="direction" onchange="this.form.submit()"
+                        style="padding:4px 7px; border:1px solid var(--w-color-border-field,#d9d9d9); border-radius:4px; font-size:0.8rem;">
+                    <option value="all" {% if direction_filter == "all" %}selected{% endif %}>All</option>
+                    <option value="in"  {% if direction_filter == "in"  %}selected{% endif %}>Received</option>
+                    <option value="out" {% if direction_filter == "out" %}selected{% endif %}>Published</option>
+                </select>
+                <input type="text" name="topic" value="{{ topic_filter }}" placeholder="Filter topic…"
+                       style="padding:4px 7px; border:1px solid var(--w-color-border-field,#d9d9d9); border-radius:4px; font-size:0.8rem; width:155px;" />
+                <button type="submit" class="button button-secondary button-small">Filter</button>
+                {% if direction_filter != "all" or topic_filter %}
+                <a href="{% url 'mqtt:dashboard' %}" class="button button-secondary button-small">✕ Clear</a>
+                {% endif %}
+            </form>
+            <form method="post" action="{% url 'mqtt:history_purge' %}"
+                  onsubmit="return confirm('Purge messages older than {{ mqtt_settings.auto_delete_after_days }} days?')">
+                {% csrf_token %}
+                <button type="submit" class="button button-secondary button-small">⏱ Purge old</button>
+            </form>
+            <form method="post" action="{% url 'mqtt:history_clear' %}"
+                  onsubmit="return confirm('Delete ALL message history?')">
+                {% csrf_token %}
+                <button type="submit" class="button warning button-small">✕ Clear all</button>
+            </form>
+        </div>
+    </div>
+
+    <table class="listing" id="history-table">
+        <thead>
+            <tr>
+                <th style="width:60px;">Dir</th>
+                <th>Topic</th>
+                <th>Payload</th>
+                <th style="width:38px; text-align:center;">QoS</th>
+                <th style="width:150px;">Timestamp</th>
+                <th style="width:44px;"></th>
+            </tr>
+        </thead>
+        <tbody id="history-tbody">
+            {% for msg in page_obj %}
+            <tr data-pk="{{ msg.pk }}">
+                <td>
+                    {% if msg.direction == "in" %}<span class="dir-in">▼ IN</span>
+                    {% else %}<span class="dir-out">▲ OUT</span>{% endif %}
+                </td>
+                <td style="font-family:monospace; font-size:0.8rem;">{{ msg.topic }}</td>
+                <td style="font-family:monospace; font-size:0.8rem; max-width:260px; word-break:break-all;">
+                    {{ msg.payload|truncatechars:120 }}
+                </td>
+                <td style="text-align:center; font-size:0.8rem;">{{ msg.qos }}</td>
+                <td style="font-size:0.73rem; color:var(--w-color-text-meta,#757575); white-space:nowrap;">
+                    {{ msg.received_at|date:"Y-m-d H:i:s" }}
+                </td>
+                <td>
+                    <form method="post" action="{% url 'mqtt:history_delete' msg.pk %}"
+                          onsubmit="return confirm('Delete this message?')">
+                        {% csrf_token %}
+                        <button type="submit" class="button warning button-small" style="padding:2px 6px;">✕</button>
+                    </form>
+                </td>
+            </tr>
+            {% empty %}
+            <tr id="history-empty-row">
+                <td colspan="6" style="text-align:center; padding:2rem 0; color:var(--w-color-text-meta,#999); font-style:italic;">
+                    No messages recorded yet.
+                    {% if direction_filter != "all" or topic_filter %}Try clearing the filter.{% endif %}
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+    {% if page_obj.has_other_pages %}
+    <p style="margin-top:0.75rem; display:flex; gap:8px; align-items:center;">
+        {% if page_obj.has_previous %}
+        <a href="?page={{ page_obj.previous_page_number }}&direction={{ direction_filter }}&topic={{ topic_filter }}"
+           class="button button-secondary button-small">← Prev</a>
+        {% endif %}
+        <span style="font-size:0.82rem; color:var(--w-color-text-meta,#757575);">
+            Page {{ page_obj.number }} / {{ page_obj.paginator.num_pages }}
+            &nbsp;·&nbsp; {{ page_obj.paginator.count }} messages
+        </span>
+        {% if page_obj.has_next %}
+        <a href="?page={{ page_obj.next_page_number }}&direction={{ direction_filter }}&topic={{ topic_filter }}"
+           class="button button-secondary button-small">Next →</a>
+        {% endif %}
+    </p>
+    {% endif %}
+</div>
+
+</div>{# /nice-padding #}
+{% endblock %}
+
+
+{% block extra_js %}
+<script>
+(function () {
+"use strict";
+
+// ── Config ───────────────────────────────────────────────────────────────────
+const proto  = location.protocol === "https:" ? "wss" : "ws";
+const WS_URL = proto + "://" + location.host + "/ws/mqtt/dashboard/";
+
+// Counters (start from server-rendered values)
+let cntIn    = {{ total_in }};
+let cntOut   = {{ total_out }};
+let cntTotal = {{ total_messages }};
+
+// Only prepend live rows if we're on page 1 with no filter
+const isFirstPage = {{ page_obj.number }} === 1;
+const hasFilter   = "{{ direction_filter }}" !== "all" || "{{ topic_filter }}" !== "";
+
+let ws = null, pingTimer = null;
+
+// ── Helpers ───────────────────────────────────────────────────────────────────
+function esc(s) {
+    return String(s)
+        .replace(/&/g,"&amp;").replace(/</g,"&lt;")
+        .replace(/>/g,"&gt;").replace(/"/g,"&quot;");
+}
+function fmtTs(iso) {
+    const d = new Date(iso);
+    const pad = n => String(n).padStart(2,"0");
+    return d.getFullYear()+"-"+pad(d.getMonth()+1)+"-"+pad(d.getDate())
+        +" "+d.toTimeString().slice(0,8);
+}
+function timeOnly(iso) { return new Date(iso).toTimeString().slice(0,8); }
+
+// ── Broker badge ─────────────────────────────────────────────────────────────
+function setBadge(connected) {
+    const badge = document.getElementById("broker-badge");
+    const text  = document.getElementById("broker-badge-text");
+    const stat  = document.getElementById("stat-broker");
+    if (!badge) return;
+    badge.className = "mqtt-badge " + (connected ? "ok" : "err");
+    text.textContent = connected ? "Connected" : "Disconnected";
+    if (stat) {
+        stat.textContent = connected ? "●" : "○";
+        stat.style.color = connected ? "#1a7f4b" : "#b01717";
+    }
+}
+
+// ── Counters ─────────────────────────────────────────────────────────────────
+function bumpCounters(dir) {
+    if (dir === "in") { cntIn++; document.getElementById("stat-in").textContent = cntIn; }
+    else              { cntOut++; document.getElementById("stat-out").textContent = cntOut; }
+    cntTotal++;
+    document.getElementById("stat-total").textContent = cntTotal;
+}
+
+// ── Live feed ─────────────────────────────────────────────────────────────────
+function appendFeed(data) {
+    const feed  = document.getElementById("mqtt-feed");
+    const empty = document.getElementById("feed-empty");
+    if (empty) empty.remove();
+
+    const row = document.createElement("div");
+    row.className = "feed-row";
+    row.innerHTML =
+        '<span class="f-ts">'  + timeOnly(data.ts) + '</span>' +
+        '<span class="' + (data.direction === "in" ? "f-in" : "f-out") + '">'
+            + (data.direction === "in" ? "▼ IN " : "▲ OUT") + '</span>' +
+        '<span class="f-topic">' + esc(data.topic)   + '</span>' +
+        '<span class="f-payload">' + esc(data.payload) + '</span>';
+
+    feed.insertBefore(row, feed.firstChild);
+    while (feed.children.length > 300) feed.removeChild(feed.lastChild);
+}
+
+// ── History table (prepend row on page 1 / no filter) ────────────────────────
+function prependHistory(data) {
+    if (!isFirstPage || hasFilter) return;
+
+    const tbody = document.getElementById("history-tbody");
+
+    // Remove "no messages" placeholder if present
+    const empty = document.getElementById("history-empty-row");
+    if (empty) empty.remove();
+
+    const isIn = data.direction === "in";
+    const dirHtml = isIn
+        ? '<span class="dir-in">▼ IN</span>'
+        : '<span class="dir-out">▲ OUT</span>';
+
+    const pl = esc(data.payload.length > 120 ? data.payload.slice(0,120)+"…" : data.payload);
+
+    const tr = document.createElement("tr");
+    tr.className = "history-new";
+    tr.innerHTML =
+        '<td>' + dirHtml + '</td>' +
+        '<td style="font-family:monospace;font-size:.8rem;">' + esc(data.topic) + '</td>' +
+        '<td style="font-family:monospace;font-size:.8rem;max-width:260px;word-break:break-all;">' + pl + '</td>' +
+        '<td style="text-align:center;font-size:.8rem;">' + data.qos + '</td>' +
+        '<td style="font-size:.73rem;color:var(--w-color-text-meta,#757575);white-space:nowrap;">' + fmtTs(data.ts) + '</td>' +
+        '<td><span style="font-size:.75rem;color:var(--w-color-text-meta,#999);">—</span></td>';
+
+    tbody.insertBefore(tr, tbody.firstChild);
+
+    // Flash the live dot
+    const dot = document.getElementById("history-live-dot");
+    if (dot) { dot.style.opacity = "1"; clearTimeout(dot._t); dot._t = setTimeout(() => dot.style.opacity = "0", 1500); }
+}
+
+// ── Subscription active-status indicators ────────────────────────────────────
+function updateSubStatus(activeTopics) {
+    document.querySelectorAll("#sub-list li[data-topic]").forEach(function (li) {
+        const dot = li.querySelector(".sub-dot");
+        if (!dot) return;
+        const isActive = activeTopics.includes(li.dataset.topic);
+        dot.classList.toggle("active", isActive);
+        dot.title = isActive ? "Subscribed on broker" : "Not yet subscribed";
+    });
+}
+
+function setSubStatus(msg, color) {
+    const el = document.getElementById("sub-status");
+    if (!el) return;
+    el.textContent = msg; el.style.color = color;
+    clearTimeout(el._t); el._t = setTimeout(() => { el.textContent = ""; }, 4000);
+}
+function setPubStatus(msg, color) {
+    const el = document.getElementById("pub-status");
+    el.textContent = msg; el.style.color = color;
+    clearTimeout(el._t); el._t = setTimeout(() => { el.textContent = ""; }, 4000);
+}
+
+// ── WebSocket ─────────────────────────────────────────────────────────────────
+function connect() {
+    ws = new WebSocket(WS_URL);
+
+    ws.onopen = function () {};
+
+    ws.onmessage = function (e) {
+        const d = JSON.parse(e.data);
+
+        if (d.type === "status" || d.type === "pong") {
+            setBadge(d.broker_connected);
+            if (d.topics !== undefined) updateSubStatus(d.topics);
+
+        } else if (d.type === "subscriptions") {
+            updateSubStatus(d.topics);
+
+        } else if (d.type === "reload_result") {
+            updateSubStatus(d.topics);
+            setSubStatus(d.ok ? "✓ Reloaded — " + d.topics.length + " active" : "✗ Not connected",
+                         d.ok ? "#1a7f4b" : "#b01717");
+
+        } else if (d.direction) {
+            // Incoming or outgoing MQTT message
+            appendFeed(d);
+            prependHistory(d);
+            bumpCounters(d.direction);
+
+        } else if (d.type === "publish_ok") {
+            setPubStatus("✓ Published to " + d.topic, "#1a7f4b");
+
+        } else if (d.type === "error") {
+            setPubStatus("✗ " + d.message, "#b01717");
+            setSubStatus("✗ " + d.message, "#b01717");
+        }
+    };
+
+    ws.onclose = function () {
+        setBadge(false);
+        clearInterval(pingTimer);
+        setTimeout(connect, 3000);
+    };
+
+    pingTimer = setInterval(function () {
+        if (ws && ws.readyState === WebSocket.OPEN)
+            ws.send(JSON.stringify({ type: "ping" }));
+    }, 30000);
+}
+
+connect();
+
+// ── Public API ──────────────────────────────────────────────────────────────────────────────
+window.mqttPublish = function () {
+    const topic   = document.getElementById("pub-topic").value.trim();
+    const payload = document.getElementById("pub-payload").value;
+    const qos     = parseInt(document.getElementById("pub-qos").value, 10);
+    if (!topic) { setPubStatus("✗ Topic is required.", "#b01717"); return; }
+    if (!ws || ws.readyState !== WebSocket.OPEN) { setPubStatus("✗ Not connected.", "#888"); return; }
+    ws.send(JSON.stringify({ type: "publish", topic, payload, qos }));
+    setPubStatus("Sending…", "#757575");
+};
+
+window.mqttReloadSubs = function () {
+    if (!ws || ws.readyState !== WebSocket.OPEN) { setSubStatus("✗ Not connected.", "#888"); return; }
+    ws.send(JSON.stringify({ type: "reload_subscriptions" }));
+    setSubStatus("Reloading…", "#757575");
+};
+
+window.mqttSwitchTab = function (btn, tab) {
+    document.querySelectorAll(".mqtt-tab").forEach(function (b) { b.classList.remove("active"); });
+    document.querySelectorAll(".mqtt-tab-panel").forEach(function (p) { p.classList.remove("active"); });
+    btn.classList.add("active");
+    var panel = document.getElementById("tab-" + tab);
+    if (panel) panel.classList.add("active");
+};
+
+// ── Clear feed ──────────────────────────────────────────────────────────────────────────────
+document.getElementById("clear-feed-btn").addEventListener("click", function () {
+    document.getElementById("mqtt-feed").innerHTML =
+        '<div class="feed-empty" id="feed-empty">Waiting for messages…</div>';
+});
+
+// ── Pub topic: publish on Enter ──────────────────────────────────────────────────────────────────
+document.getElementById("pub-topic").addEventListener("keydown", function (e) {
+    if (e.key === "Enter") { e.preventDefault(); mqttPublish(); }
+});
+
+})();
+</script>
+{% endblock %}
+
+{% endverbatim %}

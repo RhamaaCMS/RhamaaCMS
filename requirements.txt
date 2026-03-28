@@ -2,3 +2,17 @@ Django>=6,<6.1
 wagtail==7.3rc1
 wagtail-seo
 wagtail-cache
+
+# Environment variables
+python-dotenv>=1.0
+
+# ASGI server
+uvicorn[standard]>=0.29
+gunicorn>=22.0
+
+# Django Channels — WebSocket + channel layer
+channels[daphne]>=4.0
+# channels-redis>=4.0  # Uncomment for multi-worker production (requires Redis)
+
+# Async MQTT client
+aiomqtt>=2.0
