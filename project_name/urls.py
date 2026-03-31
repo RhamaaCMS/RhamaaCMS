@@ -1,6 +1,10 @@
 from django.conf import settings
 from django.urls import include, path
 from django.contrib import admin
+from {{ project_name }}.views import handler404 as _404, handler500 as _500
+
+handler404 = _404
+handler500 = _500
 
 from wagtail.admin import urls as wagtailadmin_urls
 from wagtail import urls as wagtail_urls

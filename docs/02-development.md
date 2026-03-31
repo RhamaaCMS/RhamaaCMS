@@ -6,187 +6,174 @@ Day-to-day development workflow for RhamaaCMS.
 
 ## Build Commands
 
-All commands run from the `node/` directory.
+All commands run from the **project root** (where `package.json` lives).
 
 | Command | Description |
 |---|---|
-| `pnpm run build` | One-time dev build (source maps on) |
-| `pnpm run build:prod` | Production build (minified, no source maps) |
-| `pnpm run watch` | Watch CSS/JS/assets, rebuild on change |
-| `pnpm run start` | Runs both `watch` AND `python manage.py runserver` via `concurrently` |
+| `pnpm run dev` | Start Vite HMR server on port 5173 |
+| `pnpm run build` | Production build → `frontend/dist/` |
+| `pnpm run typecheck` | TypeScript type check without emitting files |
+| `pnpm run preview` | Preview production build locally |
 
 ---
 
 ## Frontend Pipeline — How It Works
 
-The build is orchestrated by `node/esbuild.js`. It runs three tasks in parallel:
-
-### 1. CSS — PostCSS + Tailwind v4
-
 ```
-static_src/css/main.css
+frontend/js/main.tsx           ← Inertia bootstrap + CSRF setup
     │
-    ▼  postcss (node/postcss.config.js)
-    │  └── @tailwindcss/postcss plugin
-    │       ├── Scans template files via @source directives
-    │       ├── Generates only the utility classes found in those files
-    │       ├── Applies @theme tokens as CSS variables
-    │       └── Appends @tailwindcss/forms and @tailwindcss/typography
-    ▼
-static_compiled/css/main.css
-```
-
-**Why `@source` is required:**
-PostCSS runs from the `node/` directory. Tailwind v4's auto-detection would only scan files inside `node/`. The `@source` directives in `main.css` explicitly point to the Django templates:
-
-```css
-@source "../../{{ project_name }}/templates/**/*.html";
-@source "../../apps/**/templates/**/*.html";
-@source "../../static_src/javascript/**/*.js";
-```
-
-Paths are relative to `main.css` itself (`static_src/css/`), so `../../` resolves to the project root.
-
-### 2. JavaScript — esbuild
-
-```
-static_src/javascript/main.js
+    ▼  @vitejs/plugin-react    ← JSX transform + React Fast Refresh
+    │  @tailwindcss/vite       ← Tailwind v4 scan + CSS generation
     │
-    ▼  esbuild (bundle: true, format: iife, target: es2020)
-    │  ├── preline/dist      → Preline UI v4 (auto-inits all hs-* components)
-    │  ├── canvas-confetti   → confetti effect utility
-    │  └── custom utilities  → scroll animations, shake, stagger, reinitPreline()
-    ▼
-static_compiled/js/main.js  (~600 KB unminified)
+    ▼  Dev mode:  http://localhost:5173/js/main.tsx (served hot)
+       Prod mode: frontend/dist/js/main-[hash].js + main-[hash].css
 ```
 
-### 3. Asset Copy
-
-All files in `static_src/` that are **not** in `css/` or `javascript/` are copied to `static_compiled/`. This includes `images/logo.png`.
+Tailwind v4 with `@tailwindcss/vite` **auto-scans all files** under `frontend/`. No `@source` directives needed.
 
 ---
 
-## Watch Mode
+## Recommended Dev Workflow
 
-`pnpm run watch` uses `chokidar` to watch four sets of files:
+1. **Open two terminals** side by side
+   - Terminal A: `pnpm run dev` (Vite, keep running)
+   - Terminal B: `python manage.py runserver` (Django)
 
-| Watcher | Triggers |
-|---|---|
-| `static_src/css/**/*.css` | PostCSS rebuild |
-| `static_src/javascript/**/*.js` | esbuild rebuild |
-| `static_src/**/*` (excluding css/js) | Asset copy |
-| Template `*.html` files | PostCSS rebuild (Tailwind re-scans classes) |
+2. **Edit React files** in `frontend/` — Vite HMR pushes changes instantly, no page reload
 
-`pnpm run start` combines `pnpm run watch` with `python ../manage.py runserver` via `concurrently`, so you only need one terminal.
+3. **Edit Django models/views** — Django auto-reloads, browser reloads on next navigation
 
----
-
-## JavaScript Utilities Exposed
-
-`main.js` exposes two globals for use in custom scripts:
-
-```js
-// Re-initialize Preline after dynamically inserted HTML
-window.reinitPreline()                  // re-init all components
-window.reinitPreline(['collapse'])      // re-init specific component(s)
-
-// Animation helpers
-window.animationUtils.shakeElement(el)        // shake an element (form error)
-window.animationUtils.runConfetti(options)    // fire confetti
-window.animationUtils.initScrollAnimations()  // trigger IntersectionObserver setup
-```
-
-**Confetti via HTML attribute:**
-
-```html
-<button data-hs-confetti-trigger data-hs-confetti-options='{"particleCount":100}'>
-    Celebrate!
-</button>
-```
-
-**Stagger animation:**
-
-```html
-<ul data-stagger>
-    <li>Item 1</li>  <!-- gets class stagger-1 -->
-    <li>Item 2</li>  <!-- gets class stagger-2 -->
-</ul>
-```
+4. **Add new pages** — create `.tsx` in `frontend/pages/`, Vite picks it up immediately
 
 ---
 
-## Preline UI Components
+## Adding a New React Component
 
-Preline v4 is imported as `preline/dist` and auto-initializes all `data-hs-*` components on `DOMContentLoaded`. No manual `init()` call required.
+### Shared / reusable component
 
-**Collapse (used in the mobile navbar):**
+```tsx
+// frontend/components/MyWidget.tsx
+import { cn } from "@/lib/utils";
 
-```html
-<button data-hs-collapse="#mobile-nav">Toggle Menu</button>
+interface MyWidgetProps {
+  title: string;
+  className?: string;
+}
 
-<div id="mobile-nav" class="hs-collapse hidden overflow-hidden transition-all duration-300">
-    <!-- mobile nav links -->
-</div>
-```
-
-**Dropdown:**
-
-```html
-<div class="hs-dropdown relative">
-    <button id="dropdown-trigger" type="button" data-hs-dropdown-toggle>
-        Open
-    </button>
-    <div class="hs-dropdown-menu hidden min-w-48 ...">
-        <a href="#">Option 1</a>
+export function MyWidget({ title, className }: MyWidgetProps) {
+  return (
+    <div className={cn("rounded-xl border border-white/10 p-4", className)}>
+      <h3 className="font-display text-white">{title}</h3>
     </div>
-</div>
+  );
+}
 ```
 
-Full component reference: [https://preline.co/docs/](https://preline.co/docs/)
+Then import it anywhere:
+```tsx
+import { MyWidget } from "@/components/MyWidget";
+```
 
-> **Note:** RhamaaCMS uses Preline **v4**. API attributes differ from v2/v3 — always check v4 docs.
+### shadcn/ui component (recommended for UI primitives)
+
+```bash
+# Install from the shadcn registry (copies the component source into frontend/components/ui/)
+pnpm dlx shadcn@latest add dialog
+pnpm dlx shadcn@latest add dropdown-menu
+pnpm dlx shadcn@latest add input
+```
+
+Components land in `frontend/components/ui/` and are immediately importable:
+```tsx
+import { Dialog, DialogContent, DialogHeader } from "@/components/ui/dialog";
+```
+
+### Aceternity UI component (copy-paste effects)
+
+1. Browse [ui.aceternity.com/components](https://ui.aceternity.com/components)
+2. Copy the component source into `frontend/components/aceternity/MyEffect.tsx`
+3. Replace `@/lib/utils` references if needed (already correct)
+4. Remove any `"use client"` directive at the top — it's Next.js-only and breaks Vite
 
 ---
 
-## Template Discovery
+## Adding a New Page
 
-Django's template engine is configured with `APP_DIRS: True` and one explicit `DIRS` entry:
+See `docs/04-apps.md` for the full pattern. Quick summary:
 
-```python
-TEMPLATES = [{
-    "DIRS": [PROJECT_DIR / "templates"],   # {{ project_name }}/templates/
-    "APP_DIRS": True,                       # each app's templates/ subdirectory
-}]
+```tsx
+// 1. Create: frontend/pages/about/Index.tsx
+export default function About() {
+  return <RootLayout>...</RootLayout>;
+}
+
+// 2. In Django model: inertia_component = "about/Index"
+// 3. Done — Inertia resolves the component name to the file automatically
 ```
 
-**Resolution order for a template name:**
-1. `{{ project_name }}/templates/<name>` — project-level (base.html, 404.html, 500.html)
-2. Each installed app's `<app>/templates/<name>` — app-level
+---
 
-Wagtail resolves a Page model's template automatically:
+## TypeScript
+
+The project uses strict TypeScript. Run type checks with:
+
+```bash
+pnpm run typecheck
 ```
-apps.home.models.HomePage  →  home/home_page.html
-                               └── found in apps/home/templates/home/home_page.html
+
+**Path aliases** (configured in `tsconfig.json` + `vite.config.ts`):
+
+```tsx
+import { cn } from "@/lib/utils";          // → frontend/lib/utils.ts
+import { Button } from "@/components/ui/button";  // → frontend/components/ui/button.tsx
+import type { PageProps } from "@/types/global";  // → frontend/types/global.d.ts
+```
+
+**Typing Inertia page props:**
+
+```tsx
+// frontend/pages/blog/List.tsx
+interface Props {
+  posts: { id: number; title: string; slug: string }[];
+  total: number;
+}
+
+export default function BlogList({ posts, total }: Props) {
+  // ...
+}
+```
+
+**Accessing shared props** (injected by Django on every request):
+
+```tsx
+import { usePage } from "@inertiajs/react";
+
+const { auth, flash } = usePage().props;
 ```
 
 ---
 
 ## Debugging
 
-**Tailwind class not appearing in compiled CSS?**
+**Page is blank / white?**
+1. Is Vite running? (`pnpm run dev`) — mandatory in dev mode
+2. Check browser console for errors
+3. Verify `{% vite_react_refresh %}` is in `layout.html` before `{% vite_asset %}`
 
-The class must appear verbatim in a file covered by `@source`. Check:
-1. Is the template in `apps/**/templates/**/*.html` or `{{ project_name }}/templates/**/*.html`?
-2. Is the class written in full (Tailwind cannot detect dynamically-constructed strings like `"text-" + color`)?
-3. Run `pnpm run build` and hard-refresh (`Ctrl+Shift+R`).
+**`@vitejs/plugin-react can't detect preamble`?**
+- `{% vite_react_refresh %}` is missing from `layout.html`
+- Or a `.tsx` file has `"use client"` at the top — remove it (Next.js-only)
 
-**Preline component not responding?**
+**Inertia page not found (404 on navigation)?**
+- Component name in `inertia_render()` must match the file path under `frontend/pages/`
+- Example: `inertia_render(request, "blog/List", {})` → `frontend/pages/blog/List.tsx`
+- Paths are case-sensitive on Linux/Mac
 
-1. Open DevTools → Console for JS errors.
-2. Check Network tab — is `js/main.js` loading (HTTP 200)?
-3. Verify `data-hs-*` attributes match Preline v4 syntax.
-4. If component was injected after page load, call `window.reinitPreline()`.
+**Tailwind class not applying?**
+- Class must be written verbatim in the source (no dynamic string concatenation)
+- Vite + Tailwind v4 auto-scans all `.tsx` files — if class still missing, hard-refresh
 
-**CSS lint warnings in VS Code (`@plugin`, `@theme`, `@source`)?**
-
-These are false positives from the VS Code CSS language server, which does not understand Tailwind v4 directives. The build tool (`@tailwindcss/postcss`) processes them correctly. No action needed.
+**CSS lint warnings in VS Code (`@theme`, `@layer`)?**
+- False positives from the VS Code CSS language server
+- Tailwind v4 directives are processed correctly by `@tailwindcss/vite`
+- No action needed

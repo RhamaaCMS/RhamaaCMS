@@ -26,6 +26,8 @@ BASE_DIR = PROJECT_DIR.parent
 INSTALLED_APPS = [
     "apps.home",
     "utils",
+    "inertia",
+    "django_vite",
     "utils.images",
     "utils.navigation",
     "wagtail.contrib.forms",
@@ -61,6 +63,7 @@ MIDDLEWARE = [
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
     "wagtail.contrib.redirects.middleware.RedirectMiddleware",
+    "inertia.middleware.InertiaMiddleware",
 ]
 
 ROOT_URLCONF = "{{ project_name }}.urls"
@@ -84,6 +87,18 @@ TEMPLATES = [
 ]
 
 WSGI_APPLICATION = "{{ project_name }}.wsgi.application"
+
+# Inertia.js
+# NOTE: must NOT be "inertia.html" — that name shadows the inertia-django package template
+INERTIA_LAYOUT = "layout.html"
+
+# django-vite
+DJANGO_VITE = {
+    "default": {
+        "dev_mode": False,  # overridden in dev.py
+        "manifest_path": BASE_DIR / "frontend" / "dist" / ".vite" / "manifest.json",
+    }
+}
 
 
 # Database
@@ -139,6 +154,7 @@ STATICFILES_FINDERS = [
 STATICFILES_DIRS = [
     PROJECT_DIR / "static",
     BASE_DIR / "static_compiled",
+    BASE_DIR / "frontend" / "dist",
 ]
 
 STATIC_ROOT = BASE_DIR / "static"

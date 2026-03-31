@@ -11,6 +11,14 @@ ALLOWED_HOSTS = ["*"]
 
 EMAIL_BACKEND = "django.core.mail.backends.console.EmailBackend"
 
+# Vite dev server
+DJANGO_VITE = {
+    "default": {
+        "dev_mode": True,
+        "dev_server_port": 5173,
+    }
+}
+
 
 try:
     from .local import *

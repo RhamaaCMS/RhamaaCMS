@@ -2,3 +2,8 @@ Django>=6,<6.1
 wagtail==7.3rc1
 wagtail-seo
 wagtail-cache
+python-dotenv>=1.0
+
+# Inertia.js + Vite integration
+inertia-django>=0.3
+django-vite>=3.0

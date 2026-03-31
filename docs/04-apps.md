@@ -1,29 +1,46 @@
 # Apps Guide
 
-How to create new Wagtail apps, define Page models, and wire up templates.
+How to create new Wagtail apps, define Page models, and wire up React pages via Inertia.
 
 ---
 
 ## How the Existing Home App Works
 
-Before creating a new app, understand the existing pattern in `apps/home/`:
+The home app at `apps/home/` uses the `InertiaPageMixin` pattern:
 
 ```
 apps/home/
-├── models.py                    # HomePage(Page) — minimal model, no extra fields
-└── templates/home/
-    ├── home_page.html           # Extends base.html; overrides header/footer blocks; includes welcome_page.html
-    └── welcome_page.html        # Full-screen landing section (included partial, not a standalone template)
+└── models.py    # InertiaPageMixin + HomePage — points to frontend/pages/home/Index.tsx
 ```
 
-`HomePage` has no fields beyond Wagtail's built-in `Page` fields (title, slug, SEO fields). The landing page layout is entirely in `welcome_page.html`.
+```python
+# apps/home/models.py
+from inertia import render as inertia_render
+from wagtail.models import Page
 
-**Wagtail's template naming convention:**
+
+class InertiaPageMixin:
+    """Mixin that serves a Wagtail Page via Inertia.js instead of an HTML template."""
+    inertia_component: str = ""
+
+    def serve(self, request):
+        props = self.get_inertia_props(request)
+        return inertia_render(request, self.inertia_component, props)
+
+    def get_inertia_props(self, request) -> dict:
+        return {"page_title": self.title}
+
+
+class HomePage(InertiaPageMixin, Page):
+    inertia_component = "home/Index"
+
+    class Meta:
+        verbose_name = "Home page"
 ```
-apps.<app_name>.models.<ModelName>
-    → <app_name>/<model_name_snake_case>.html
-    → found in apps/<app_name>/templates/<app_name>/<file>.html
-```
+
+The component string `"home/Index"` maps directly to `frontend/pages/home/Index.tsx`.
+
+**There are no `.html` templates in this project** (except `layout.html` which is the Inertia root shell). Every public-facing page is a React component.
 
 ---
 
@@ -58,26 +75,40 @@ INSTALLED_APPS = [
 
 ## 2. Define Page Models
 
-Edit `apps/blog/models.py`:
+Edit `apps/blog/models.py` — use `InertiaPageMixin` and override `get_inertia_props()` to pass data to React:
 
 ```python
+import json
 from django.db import models
 from wagtail.models import Page
 from wagtail.fields import RichTextField
 from wagtail.admin.panels import FieldPanel
+from apps.home.models import InertiaPageMixin
 
 
-class BlogIndexPage(Page):
+class BlogIndexPage(InertiaPageMixin, Page):
+    inertia_component = "blog/List"
     intro = models.TextField(blank=True)
 
-    content_panels = Page.content_panels + [
-        FieldPanel("intro"),
-    ]
+    content_panels = Page.content_panels + [FieldPanel("intro")]
+    subpage_types = ["blog.BlogPage"]
 
-    subpage_types = ["blog.BlogPage"]   # only BlogPage can be a child
+    def get_inertia_props(self, request) -> dict:
+        posts = (
+            BlogPage.objects.live()
+            .descendant_of(self)
+            .order_by("-date")
+            .values("id", "title", "slug", "date", "intro")
+        )
+        return {
+            "page_title": self.title,
+            "intro": self.intro,
+            "posts": list(posts),
+        }
 
 
-class BlogPage(Page):
+class BlogPage(InertiaPageMixin, Page):
+    inertia_component = "blog/Detail"
     date = models.DateField("Post date")
     intro = models.CharField(max_length=250)
     body = RichTextField()
@@ -87,8 +118,16 @@ class BlogPage(Page):
         FieldPanel("intro"),
         FieldPanel("body"),
     ]
+    parent_page_types = ["blog.BlogIndexPage"]
 
-    parent_page_types = ["blog.BlogIndexPage"]  # must live under BlogIndexPage
+    def get_inertia_props(self, request) -> dict:
+        from wagtail.rich_text import expand_db_html
+        return {
+            "page_title": self.title,
+            "date": str(self.date),
+            "intro": self.intro,
+            "body_html": expand_db_html(self.body),   # safe HTML for dangerouslySetInnerHTML
+        }
 ```
 
 ---
@@ -102,111 +141,80 @@ python manage.py migrate
 
 ---
 
-## 4. Create Templates
+## 4. Create React Page Components
 
-Template files must follow Wagtail's naming convention and live inside the app's `templates/<app_name>/` directory.
+```tsx
+// frontend/pages/blog/List.tsx
+import RootLayout from "@/layouts/RootLayout";
+import { Head } from "@inertiajs/react";
 
-```
-apps/blog/templates/blog/
-├── blog_index_page.html    ← BlogIndexPage template
-└── blog_page.html          ← BlogPage template
-```
+interface Post { id: number; title: string; slug: string; date: string; intro: string; }
+interface Props { page_title: string; intro: string; posts: Post[]; }
 
-### `blog_index_page.html`
-
-```html
-{% extends "base.html" %}
-{% load wagtailcore_tags %}
-
-{% block content %}
-<main class="max-w-4xl mx-auto px-4 py-16">
-
-    <header class="mb-12">
-        <h1 class="font-display text-4xl sm:text-5xl font-semibold text-brand-900 mb-4">
-            {{ page.title }}
-        </h1>
-        {% if page.intro %}
-        <p class="text-surface-600 text-lg leading-relaxed max-w-2xl">{{ page.intro }}</p>
-        {% endif %}
-    </header>
-
-    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-        {% for post in page.get_children.live.order_by('-blogpage__date') %}
-        <a href="{% pageurl post %}"
-           class="group flex flex-col gap-2 p-6 rounded-2xl
-                  border border-surface-200
-                  hover:border-brand-300 hover:-translate-y-1 transition-all duration-200">
-            <p class="font-mono text-gold-500 text-[11px] tracking-widest uppercase">
-                {{ post.specific.date }}
-            </p>
-            <h2 class="font-display text-xl font-semibold text-brand-900
-                       group-hover:text-brand-700 transition-colors">
-                {{ post.title }}
-            </h2>
-            <p class="text-surface-500 text-sm leading-relaxed">
-                {{ post.specific.intro }}
-            </p>
-        </a>
-        {% endfor %}
-    </div>
-
-</main>
-{% endblock %}
+export default function BlogList({ page_title, intro, posts }: Props) {
+  return (
+    <RootLayout>
+      <Head title={page_title} />
+      <main className="mx-auto max-w-4xl px-4 py-16">
+        <h1 className="font-display text-5xl font-semibold text-white mb-4">{page_title}</h1>
+        {intro && <p className="text-white/60 text-lg mb-10">{intro}</p>}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          {posts.map((post) => (
+            <a
+              key={post.id}
+              href={`/blog/${post.slug}/`}
+              className="group flex flex-col gap-2 rounded-2xl border border-white/10
+                         bg-white/[0.06] p-6 hover:border-gold-500/35 hover:-translate-y-1
+                         transition-all duration-200"
+            >
+              <p className="font-mono text-gold-400 text-[11px] tracking-widest uppercase">
+                {post.date}
+              </p>
+              <h2 className="font-display text-xl font-semibold text-white">{post.title}</h2>
+              <p className="text-white/50 text-sm leading-relaxed">{post.intro}</p>
+            </a>
+          ))}
+        </div>
+      </main>
+    </RootLayout>
+  );
+}
 ```
 
-### `blog_page.html`
+```tsx
+// frontend/pages/blog/Detail.tsx
+import RootLayout from "@/layouts/RootLayout";
+import { Head } from "@inertiajs/react";
 
-```html
-{% extends "base.html" %}
-{% load wagtailcore_tags %}
+interface Props {
+  page_title: string; date: string; intro: string; body_html: string;
+}
 
-{% block content %}
-<article class="max-w-2xl mx-auto px-4 py-16">
-
-    <header class="mb-10">
-        <p class="font-mono text-gold-500 text-[11px] tracking-widest uppercase mb-4">
-            {{ page.date }}
-        </p>
-        <h1 class="font-display text-4xl sm:text-5xl font-semibold text-brand-900 leading-tight mb-4">
-            {{ page.title }}
-        </h1>
-        {% if page.intro %}
-        <p class="text-surface-600 text-lg leading-relaxed">{{ page.intro }}</p>
-        {% endif %}
-    </header>
-
-    <div class="prose prose-lg max-w-none">
-        {{ page.body|richtext }}
-    </div>
-
-</article>
-{% endblock %}
+export default function BlogDetail({ page_title, date, intro, body_html }: Props) {
+  return (
+    <RootLayout>
+      <Head title={page_title} />
+      <article className="mx-auto max-w-2xl px-4 py-16">
+        <p className="font-mono text-gold-400 text-[11px] tracking-widest uppercase mb-4">{date}</p>
+        <h1 className="font-display text-5xl font-semibold text-white mb-4">{page_title}</h1>
+        <p className="text-white/60 text-lg mb-8">{intro}</p>
+        <div
+          className="prose prose-invert max-w-none"
+          dangerouslySetInnerHTML={{ __html: body_html }}
+        />
+      </article>
+    </RootLayout>
+  );
+}
 ```
-
-> `prose` comes from `@tailwindcss/typography` (already included as `@plugin` in `main.css`).
 
 ---
 
-## 5. @source Coverage
-
-The existing `@source` directive already covers any app under `apps/`:
-
-```css
-/* in static_src/css/main.css */
-@source "../../apps/**/templates/**/*.html";
-```
-
-As long as templates are stored in `apps/<app_name>/templates/`, Tailwind will scan them automatically. No change to `main.css` needed.
-
----
-
-## 6. Add the Page in Wagtail Admin
+## 5. Add Pages in Wagtail Admin
 
 1. Open `/admin/` → **Pages**
-2. Navigate to the root page (or wherever you want to place the new section)
-3. Click **Add child page** → select `Blog Index Page`
-4. Fill in title and publish
-5. Inside that page, use **Add child page** → `Blog Page` to create posts
+2. Navigate to root → **Add child page** → `Blog Index Page` → publish
+3. Inside that page → **Add child page** → `Blog Page` → fill in fields → publish
 
 ---
 
@@ -215,98 +223,140 @@ As long as templates are stored in `apps/<app_name>/templates/`, Tailwind will s
 ```
 apps/blog/
 ├── __init__.py
-├── models.py           # Page models with content_panels
+├── models.py           # InertiaPageMixin + BlogIndexPage + BlogPage
 ├── migrations/         # Auto-generated by makemigrations
-├── templates/
-│   └── blog/
-│       ├── blog_index_page.html
-│       └── blog_page.html
-└── templatetags/       # Optional: custom template tags
-    ├── __init__.py
-    └── blog_tags.py
+└── apps.py
+
+frontend/pages/blog/
+├── List.tsx            # BlogIndexPage → lists all posts
+└── Detail.tsx          # BlogPage → single post view
 ```
 
 ---
 
-## StreamField — Flexible Content Blocks
+## Passing Complex Data (StreamField)
 
-For pages that need flexible mixed content (text, images, quotes, code, etc.), use `StreamField`:
+For StreamField content, serialize each block in `get_inertia_props()` and render in React:
 
 ```python
+# apps/blog/models.py
 from wagtail.fields import StreamField
-from wagtail.blocks import CharBlock, RichTextBlock, ImageChooserBlock, StructBlock
+from wagtail.blocks import CharBlock, RichTextBlock, ImageChooserBlock
+from wagtail.images.shortcuts import get_rendition_or_not_found
 
-class ArticlePage(Page):
+class ArticlePage(InertiaPageMixin, Page):
+    inertia_component = "blog/Article"
     body = StreamField([
-        ("heading",   CharBlock(form_classname="title")),
+        ("heading",   CharBlock()),
         ("paragraph", RichTextBlock()),
         ("image",     ImageChooserBlock()),
-        ("callout",   StructBlock([
-            ("text",  CharBlock()),
-            ("style", CharBlock(default="info")),
-        ])),
     ], use_json_field=True)
 
-    content_panels = Page.content_panels + [
-        FieldPanel("body"),
-    ]
+    content_panels = Page.content_panels + [FieldPanel("body")]
+
+    def get_inertia_props(self, request) -> dict:
+        from wagtail.rich_text import expand_db_html
+        blocks = []
+        for block in self.body:
+            if block.block_type == "heading":
+                blocks.append({"type": "heading", "value": str(block.value)})
+            elif block.block_type == "paragraph":
+                blocks.append({"type": "paragraph", "value": expand_db_html(str(block.value))})
+            elif block.block_type == "image":
+                img = block.value
+                rendition = get_rendition_or_not_found(img, "width-1200")
+                blocks.append({"type": "image", "url": rendition.url, "alt": img.title})
+        return {"page_title": self.title, "blocks": blocks}
 ```
 
-Render in the template:
+```tsx
+// frontend/pages/blog/Article.tsx
+interface Block {
+  type: "heading" | "paragraph" | "image";
+  value?: string; url?: string; alt?: string;
+}
 
-```html
-{% load wagtailcore_tags wagtailimages_tags %}
-
-{% for block in page.body %}
-
-    {% if block.block_type == "heading" %}
-        <h2 class="font-display text-2xl font-semibold text-brand-900 mt-10 mb-4">
-            {{ block.value }}
-        </h2>
-
-    {% elif block.block_type == "paragraph" %}
-        <div class="prose prose-lg max-w-none mb-6">
-            {{ block.value|richtext }}
-        </div>
-
-    {% elif block.block_type == "image" %}
-        {% image block.value width-1200 class="rounded-2xl w-full mb-6" %}
-
-    {% elif block.block_type == "callout" %}
-        <div class="flex gap-3 p-4 rounded-xl border border-gold-500/25 bg-gold-500/10 mb-6">
-            <p class="text-surface-800 text-sm leading-relaxed">{{ block.value.text }}</p>
-        </div>
-
-    {% endif %}
-
-{% endfor %}
+export default function Article({ page_title, blocks }: { page_title: string; blocks: Block[] }) {
+  return (
+    <RootLayout>
+      <Head title={page_title} />
+      <article className="mx-auto max-w-2xl px-4 py-16">
+        <h1 className="font-display text-5xl font-semibold text-white mb-8">{page_title}</h1>
+        {blocks.map((block, i) => {
+          if (block.type === "heading")
+            return <h2 key={i} className="font-display text-2xl text-white mt-10 mb-4">{block.value}</h2>;
+          if (block.type === "paragraph")
+            return <div key={i} className="prose prose-invert mb-6"
+                        dangerouslySetInnerHTML={{ __html: block.value! }} />;
+          if (block.type === "image")
+            return <img key={i} src={block.url} alt={block.alt} className="rounded-2xl w-full mb-6" />;
+        })}
+      </article>
+    </RootLayout>
+  );
+}
 ```
 
 ---
 
-## Wagtail Snippets (Reusable Non-Page Content)
+## Shared Props (Available on Every Page)
 
-For content that is shared across pages (navigation items, team members, testimonials), use Snippets instead of Page models:
+To inject data into every page's props automatically (e.g. logged-in user, flash messages, site config), use Inertia's `INERTIA_SHARE` setting or a custom middleware:
 
 ```python
-from wagtail.models import Page
-from wagtail.snippets.models import register_snippet
-from wagtail.admin.panels import FieldPanel
+# {{ project_name }}/middleware.py
+from inertia import share
 
-@register_snippet
-class Testimonial(models.Model):
-    author = models.CharField(max_length=100)
-    quote = models.TextField()
-    role = models.CharField(max_length=100, blank=True)
+class InertiaShareMiddleware:
+    def __init__(self, get_response):
+        self.get_response = get_response
 
-    panels = [
-        FieldPanel("author"),
-        FieldPanel("role"),
-        FieldPanel("quote"),
-    ]
-
-    def __str__(self):
-        return self.author
+    def __call__(self, request):
+        share(request, site_name="RhamaaCMS")
+        if request.user.is_authenticated:
+            share(request, auth={"username": request.user.username})
+        return self.get_response(request)
 ```
 
-Snippets appear under **Snippets** in the Wagtail admin sidebar and can be queried in templates via a custom context processor or template tag.
+Add to `MIDDLEWARE` in `settings/base.py`:
+```python
+"{{ project_name }}.middleware.InertiaShareMiddleware",
+```
+
+Access in any React component:
+```tsx
+import { usePage } from "@inertiajs/react";
+
+const { site_name, auth } = usePage().props;
+```
+
+---
+
+## Wagtail Snippets
+
+Snippets are reusable non-page content (testimonials, nav items, team members). They're managed in Wagtail admin but queried in `get_inertia_props()`:
+
+```python
+from wagtail.snippets.models import register_snippet
+
+@register_snippet
+class Announcement(models.Model):
+    text = models.TextField()
+    active = models.BooleanField(default=True)
+
+    panels = [FieldPanel("text"), FieldPanel("active")]
+
+    def __str__(self):
+        return self.text[:60]
+```
+
+Then in any page's `get_inertia_props()`:
+```python
+def get_inertia_props(self, request) -> dict:
+    return {
+        "page_title": self.title,
+        "announcements": list(
+            Announcement.objects.filter(active=True).values("text")
+        ),
+    }
+```

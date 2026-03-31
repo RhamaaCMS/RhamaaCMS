@@ -9,7 +9,7 @@ Complete guide for setting up RhamaaCMS from scratch on a local machine.
 | Tool | Minimum version | Notes |
 |---|---|---|
 | Python | 3.11+ | |
-| Node.js | 18+ | Required by pnpm and esbuild |
+| Node.js | 20+ | Required by Vite 6 + pnpm |
 | pnpm | 8+ | `npm install -g pnpm` |
 | Git | any | |
 
@@ -20,13 +20,7 @@ Complete guide for setting up RhamaaCMS from scratch on a local machine.
 ```bash
 git clone <repo-url> {{ project_name }}
 cd {{ project_name }}
-```
 
----
-
-## 2. Python Virtual Environment
-
-```bash
 # Create the virtual environment
 python -m venv .venv
 
@@ -41,13 +35,12 @@ pip install -r requirements.txt
 ```
 
 **Dependencies installed** (`requirements.txt`):
-- `Django >= 6, < 6.1` — web framework
+- `Django >= 6` — web framework
 - `wagtail 7.3` — CMS
 - `wagtail-seo` — SEO meta fields on Page models
 - `wagtail-cache` — page-level HTTP caching
-- `django-filters` — queryset filtering
-- `modelcluster` — Wagtail inline panel support
-- `taggit` — tagging
+- `inertia-django >= 0.3` — Inertia.js server adapter
+- `django-vite >= 3.0` — Vite asset integration
 
 ---
 
@@ -101,33 +94,34 @@ python manage.py createsuperuser
 
 ---
 
-## 5. Frontend Assets
+## 5. Install Frontend Dependencies
 
-All frontend tooling lives in `node/`. The build outputs to `static_compiled/` (gitignored — always regenerate after cloning or pulling).
+All frontend tooling is configured at the project root (`package.json`, `vite.config.ts`).
 
 ```bash
-cd node
-pnpm install      # installs Tailwind, esbuild, Preline, etc.
-pnpm run build    # compiles CSS + JS, copies images
-cd ..
+# From project root (where package.json lives)
+pnpm install
 ```
 
-**What the build produces:**
-
-```
-static_compiled/
-├── css/main.css      # Tailwind v4 compiled output (~1300 lines in dev)
-├── js/main.js        # Preline v4 + confetti + animation utilities (~600 KB)
-└── images/           # Copied from static_src/images/
-```
-
-Django's `STATICFILES_DIRS` includes both `{{ project_name }}/static/` and `static_compiled/`, so the dev server picks these up automatically.
+**Key packages installed:**
+- `vite` + `@vitejs/plugin-react` — build tool + React HMR
+- `@tailwindcss/vite` + `tailwindcss` — Tailwind v4 via Vite plugin
+- `@inertiajs/react` — Inertia.js React client
+- `react` + `react-dom` + TypeScript — React 18
+- `class-variance-authority` + `clsx` + `tailwind-merge` — shadcn/ui utilities
+- `lucide-react` + `framer-motion` — icons + animation
 
 ---
 
-## 6. Run the Development Server
+## 6. Run Both Development Servers
+
+> **Critical:** Both servers must run simultaneously. Without Vite, the browser loads a blank page.
 
 ```bash
+# Terminal 1 — Vite HMR server (port 5173, serves React assets)
+pnpm run dev
+
+# Terminal 2 — Django dev server (port 8000)
 python manage.py runserver
 ```
 
@@ -140,32 +134,43 @@ python manage.py runserver
 
 ---
 
-## Static Files — How It Works
+## How Assets Flow
 
 ```
-STATICFILES_DIRS = [
-    {{ project_name }}/static/        ← project static files (if any)
-    static_compiled/            ← build output (CSS, JS, images)
-]
+Development:
+  Browser → Django :8000 → layout.html
+                              ├── {% vite_hmr_client %}   → http://localhost:5173/@vite/client
+                              ├── {% vite_react_refresh %} → React Fast Refresh preamble
+                              └── {% vite_asset 'js/main.tsx' %} → http://localhost:5173/js/main.tsx
 
-STATIC_ROOT = static/           ← target for collectstatic (production)
-STATIC_URL  = /static/
+Production:
+  pnpm run build → frontend/dist/ (manifest.json + hashed assets)
+  Django reads manifest.json → injects <script> + <link> tags with correct hashed filenames
+  python manage.py collectstatic → copies frontend/dist/ → static/ → served by Nginx
 ```
 
-In **development** (`DEBUG=True`), `staticfiles_urlpatterns()` serves files directly from `STATICFILES_DIRS`.
-
-In **production**, run `python manage.py collectstatic` to copy everything to `STATIC_ROOT`, then serve it via a web server (Nginx) or CDN.
+`DJANGO_VITE` in `settings/base.py` controls this:
+```python
+DJANGO_VITE = {
+    "default": {
+        "dev_mode": False,   # overridden to True in dev.py
+        "manifest_path": BASE_DIR / "frontend" / "dist" / ".vite" / "manifest.json",
+    }
+}
+```
 
 ---
 
 ## Production Checklist
 
 - [ ] Set a strong, unique `SECRET_KEY` in `local.py` (never commit it)
-- [ ] Set `DEBUG = False` — use `production.py` or override in `local.py`
+- [ ] Set `DEBUG = False` in `production.py` or `local.py`
 - [ ] Set `ALLOWED_HOSTS` to your actual domain(s)
 - [ ] Switch to PostgreSQL (update `DATABASES` in `local.py`)
 - [ ] Set `WAGTAILADMIN_BASE_URL` to your production domain in `base.py`
-- [ ] Run `pnpm run build:prod` (minified output, no source maps)
-- [ ] Run `python manage.py collectstatic`
-- [ ] Serve with Gunicorn + Nginx (or similar WSGI/ASGI setup)
+- [ ] Run `pnpm run build` — outputs to `frontend/dist/`
+- [ ] Run `python manage.py collectstatic` — copies `frontend/dist/` to `static/`
+- [ ] Set `DJANGO_VITE_DEV_MODE = False` (the default in `base.py`)
+- [ ] Serve with Gunicorn/Uvicorn + Nginx
 - [ ] Configure `MEDIA_ROOT` and media file serving
+- [ ] See `docs/06-react-inertia.md` for the full deployment walkthrough

@@ -6,228 +6,227 @@ How to modify the theme, add components, and work with the design system.
 
 ## CSS Architecture
 
-`static_src/css/main.css` is the single CSS entry point. It is intentionally minimal:
+`frontend/css/main.css` is the single CSS entry point:
 
 ```
-static_src/css/main.css
-├── @import "tailwindcss"          — Core Tailwind v4 reset + utilities
-├── @plugin "@tailwindcss/forms"   — Opinionated form element reset
-├── @plugin "@tailwindcss/typography" — prose class for rich text
-├── @source "..."                  — Paths Tailwind scans for utility classes
-├── @theme { ... }                 — Brand color/font tokens → CSS variables
-├── @layer base { ... }            — html, body, heading, scrollbar, selection
-├── @layer utilities { ... }       — Custom utilities: animations, gradient text
-└── @keyframes { ... }             — fade-up, float, shake
+frontend/css/main.css
+├── @import "tailwindcss"           — Tailwind v4 core (via @tailwindcss/vite)
+├── @layer base { :root { ... } }  — shadcn/ui CSS variables (HSL)
+├── @layer base { .dark { ... } }  — Dark mode CSS variable overrides
+├── @theme inline { ... }          — Map CSS vars → Tailwind tokens + brand palette
+├── @layer base { * { ... } }      — Border color + body defaults
+├── @keyframes { ... }             — fade-up, float, ping-slow
+└── @layer utilities { ... }       — animate-* classes, animation-delay-*
 ```
 
-**Design principle:** There is no `@layer components`. Every component is styled entirely with **Tailwind utility classes written directly in the HTML template**. This makes templates self-documenting and easy to copy/modify.
+**Design principle:** Components are styled with Tailwind utility classes written directly in `.tsx` files. The CSS file only defines design tokens — it contains no component styles.
 
 ---
 
 ## Brand Colors
 
-All colors are defined in the `@theme` block in `main.css` and automatically become Tailwind utility classes (e.g. `bg-brand-800`, `text-gold-500`, `border-surface-200`).
+All brand colors are defined under `@theme inline` in `frontend/css/main.css` and automatically become Tailwind utility classes.
 
-### Green scale (`brand-*`)
+### Deep blue scale (`brand-*`)
 
-| Token | Hex | Primary use |
+| Token | oklch value | Primary use |
 |---|---|---|
-| `brand-950` | `#071e17` | Deepest shadow |
-| `brand-900` | `#0A3328` | Footer background |
-| `brand-800` | `#0D4A3C` | **Primary** — hero section, navbar |
-| `brand-700` | `#145C4B` | Hover states on dark bg |
-| `brand-600` | `#1E7A63` | Ambient glow color |
-| `brand-400` | `#3DB896` | Scrollbar thumb, selection |
-| `brand-200` | `#A8E3D4` | Selection background |
-| `brand-50` | `#EDF9F5` | Surface tint |
+| `brand-900` | `oklch(0.21 0.082 271)` | Deepest background |
+| `brand-800` | `oklch(0.278 0.095 268.5)` | **Primary** — hero, navbar, footer |
+| `brand-700` | `oklch(0.35 0.105 265)` | Hover overlays on dark bg |
+| `brand-600` | `oklch(0.42 0.11 263)` | Ambient glow |
 
 ### Gold scale (`gold-*`)
 
-| Token | Hex | Primary use |
+| Token | oklch value | Primary use |
 |---|---|---|
-| `gold-500` | `#C8A96E` | **Primary accent** — CTA buttons, badges |
-| `gold-400` | `#D9BE8D` | Icon colors, hover text |
-| `gold-300` | `#E8D4B0` | Gradient text |
+| `gold-500` | `oklch(0.68 0.148 78.5)` | **Primary accent** — CTA, borders |
+| `gold-400` | `oklch(0.743 0.145 83.6)` | Icon colors, hover text |
+| `gold-300` | `oklch(0.82 0.12 88)` | Subtle tints |
 
-### Surface neutrals (`surface-*`)
+**To change a color**, update the `oklch()` value in `frontend/css/main.css` — Vite hot-reloads instantly, no rebuild needed in dev.
 
-| Token | Hex | Primary use |
-|---|---|---|
-| `surface-900` | `#1A1A18` | Body text |
-| `surface-50` | `#FAFAF7` | Default page background (content pages) |
-
-**To change a color**, update the hex value in `main.css` and rebuild:
-
-```bash
-cd node && pnpm run build
+**Example — swap brand to a purple palette:**
+```css
+@theme inline {
+  --color-brand-800: oklch(0.28 0.1 290);
+  --color-brand-700: oklch(0.35 0.11 288);
+  --color-brand-600: oklch(0.43 0.12 286);
+}
 ```
 
 ---
 
 ## Typography
 
-Fonts are loaded from Google Fonts in `base.html`'s `<head>`, then referenced as tokens in `@theme`:
+Fonts are referenced as tokens in the `@theme inline` block of `frontend/css/main.css`:
 
 ```css
-@theme {
-  --font-display: "Cormorant Garamond", Georgia, "Times New Roman", serif;
-  --font-sans:    "DM Sans", system-ui, -apple-system, sans-serif;
-  --font-mono:    "JetBrains Mono", "Fira Code", monospace;
-}
+--font-display: "Cormorant Garamond", Georgia, serif;
+--font-mono:    "JetBrains Mono", "Fira Code", monospace;
 ```
 
 | Token | Tailwind class | Use for |
 |---|---|---|
 | `--font-display` | `font-display` | Headings, hero text, brand wordmark |
-| `--font-sans` | `font-sans` | Body text (set on `body` in `@layer base`) |
+| (system) | `font-sans` | Body text (DM Sans loaded via Google Fonts in layout.html) |
 | `--font-mono` | `font-mono` | Labels, badges, version numbers, code |
 
 `@layer base` applies `font-display` to all `h1`–`h6` elements automatically.
 
-**To swap a font:** update the Google Fonts URL in `base.html` and the token value in `main.css`.
+**To add or swap a font:**
+1. Add a Google Fonts `<link>` in `{{ project_name }}/templates/layout.html`
+2. Update `--font-display` or `--font-mono` in `frontend/css/main.css`
+3. Vite picks up the change immediately (no rebuild in dev)
+
+---
+
+## shadcn/ui CSS Variables
+
+`frontend/css/main.css` defines the full shadcn/ui HSL variable set, enabling all shadcn components to work automatically:
+
+```css
+:root {
+  --background: 0 0% 100%;
+  --foreground: 240 10% 3.9%;
+  --primary: 240 5.9% 10%;
+  --primary-foreground: 0 0% 98%;
+  /* ... more vars ... */
+  --radius: 0.5rem;
+}
+```
+
+These map to Tailwind tokens via `@theme inline`:
+```css
+@theme inline {
+  --color-background: hsl(var(--background));
+  --color-primary: hsl(var(--primary));
+  /* ... */
+}
+```
+
+**To change the shadcn theme color** (e.g. swap primary from dark to indigo):
+```css
+:root {
+  --primary: 239 84% 67%;           /* indigo-500 equivalent */
+  --primary-foreground: 0 0% 100%;  /* white */
+}
+```
 
 ---
 
 ## Animation Utilities
 
-Defined in `@layer utilities` and `@keyframes` in `main.css`:
+Defined in `@layer utilities` and `@keyframes` in `frontend/css/main.css`:
 
 | Class | Effect | Keyframe |
 |---|---|---|
-| `animate-fade-up` | Slide up 24 px + fade in — one-shot entrance | `fade-up` |
+| `animate-fade-up` | Slide up 16 px + fade in — one-shot entrance | `fade-up` |
 | `animate-float` | Gentle 8 px vertical float loop | `float` |
-| `animate-shake` | Horizontal shake — use on form error fields | `shake` |
 
 **Stagger delays** (100 ms increments, up to 700 ms):
 
-```html
-<div class="animate-fade-up animation-delay-100">First</div>
-<div class="animate-fade-up animation-delay-200">Second</div>
-<div class="animate-fade-up animation-delay-300">Third</div>
+```tsx
+<div className="animate-fade-up animation-delay-100">First</div>
+<div className="animate-fade-up animation-delay-200">Second</div>
+<div className="animate-fade-up animation-delay-300">Third</div>
+```
+
+**Adding a new animation:**
+```css
+/* in frontend/css/main.css */
+@keyframes slide-in {
+  from { transform: translateX(-20px); opacity: 0; }
+  to   { transform: translateX(0);     opacity: 1; }
+}
+
+@layer utilities {
+  .animate-slide-in { animation: slide-in 0.4s ease-out both; }
+}
 ```
 
 ---
 
-## Base Layer Defaults
+## Component Patterns (React / TSX)
 
-`@layer base` sets these global styles:
+Since all pages are React components, there are no HTML templates to copy. Use these TSX patterns:
 
-- `html` — `scroll-behavior: smooth`, `antialiased`, `optimizeLegibility`
-- `body` — `font-sans`, `bg-surface-50`, `text-surface-900`, `line-height: 1.65`
-- `h1`–`h6` — `font-display`, `line-height: 1.2`, `letter-spacing: -0.01em`
-- `::-webkit-scrollbar` — 6 px, brand-400 thumb, surface-100 track
-- `::selection` — brand-200 background, brand-900 text
+### Dark card (used on the home page)
 
----
-
-## Component Patterns
-
-RhamaaCMS has no component classes — copy these patterns directly into templates.
-
-### Card (dark background variant)
-
-```html
-<div class="flex flex-col gap-3 p-5 rounded-2xl
-            border border-white/10 bg-white/[0.06]
-            hover:bg-white/[0.11] hover:border-gold-500/35
-            hover:-translate-y-1 transition-all duration-200">
-    <h3 class="font-display text-white text-lg font-semibold">Title</h3>
-    <p class="text-white/50 text-sm leading-relaxed">Description text.</p>
+```tsx
+<div className="flex flex-col gap-3 rounded-2xl border border-white/10 bg-white/[0.06] p-5
+                hover:-translate-y-1 hover:border-gold-500/35 hover:bg-white/[0.11]
+                transition-all duration-200">
+  <h3 className="font-display text-lg font-semibold text-white">Title</h3>
+  <p className="text-sm leading-relaxed text-white/50">Description text.</p>
 </div>
 ```
 
-### Card (light background variant)
+### shadcn Card component
 
-```html
-<div class="flex flex-col gap-3 p-5 rounded-2xl
-            border border-surface-200
-            hover:border-brand-300 hover:-translate-y-1 transition-all duration-200">
-    <h3 class="font-display text-brand-900 text-lg font-semibold">Title</h3>
-    <p class="text-surface-600 text-sm leading-relaxed">Description text.</p>
-</div>
+```tsx
+import { Card, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+
+<Card>
+  <CardHeader>
+    <CardTitle>Title</CardTitle>
+    <CardDescription>Subtitle</CardDescription>
+  </CardHeader>
+</Card>
 ```
 
-### Badge / Pill
+### Badge
 
-```html
-<span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full
-             border border-gold-500/25 bg-gold-500/10
-             text-gold-400 text-[11px] font-mono tracking-widest uppercase">
-    <span class="w-1.5 h-1.5 rounded-full bg-gold-400 shrink-0"></span>
-    v1.0
-</span>
+```tsx
+import { Badge } from "@/components/ui/badge";
+
+<Badge variant="gold">v1.0</Badge>
+<Badge variant="outline">React · Inertia.js</Badge>
 ```
 
-### Buttons
+### Button
 
-```html
-<!-- Primary (gold CTA — used in navbar and 404 page) -->
-<a href="#" class="inline-flex items-center gap-2 text-[0.8125rem] font-semibold
-                   text-brand-900 bg-gold-500 hover:bg-gold-400
-                   hover:-translate-y-0.5 px-4 py-2 rounded-lg transition-all">
-    Get Started
-</a>
+```tsx
+import { Button } from "@/components/ui/button";
 
-<!-- Ghost (nav links) -->
-<a href="#" class="text-sm font-medium text-white/70 hover:text-white
-                   hover:bg-white/10 px-3 py-1.5 rounded-lg transition-colors">
-    Home
-</a>
-```
-
-### Ornamental divider
-
-```html
-<div class="flex items-center gap-3 w-48">
-    <div class="h-px flex-1 bg-gradient-to-r from-transparent via-white/15 to-transparent"></div>
-    <svg class="w-2.5 h-2.5 text-gold-500/40 shrink-0" viewBox="0 0 16 16" fill="currentColor">
-        <path d="M8 0 9.8 6.2 16 8 9.8 9.8 8 16 6.2 9.8 0 8 6.2 6.2Z"/>
-    </svg>
-    <div class="h-px flex-1 bg-gradient-to-r from-transparent via-white/15 to-transparent"></div>
-</div>
+<Button variant="gold">Sign In</Button>
+<Button variant="outline">Learn More</Button>
+<Button variant="ghost">Cancel</Button>
 ```
 
 ---
 
-## Gradient Text
+## Dark Mode
 
-Two gradient text helpers are defined in `@layer utilities`:
+The shadcn CSS variables support dark mode out of the box. Add the `dark` class to `<html>`:
 
-```html
-<!-- Green → gold diagonal gradient -->
-<span class="text-gradient-brand">Rhamaa</span>
-
-<!-- Gold light → gold gradient -->
-<span class="text-gradient-gold">Premium</span>
+```tsx
+// In layout.html or via a ThemeProvider component
+document.documentElement.classList.toggle('dark');
 ```
 
----
-
-## Suppressing Header / Footer
-
-The landing page (`home_page.html`) hides the global header and footer by overriding their template blocks:
-
-```django
-{% block header %}{% endblock header %}
-{% block footer %}{% endblock footer %}
-```
-
-Any page template that extends `base.html` can do the same. The blocks are defined in `base.html` around the `<header>` and `<footer>` elements.
+All shadcn components automatically switch themes. Brand colors (`brand-*`, `gold-*`) are dark-mode-only by design — this project defaults to a dark UI.
 
 ---
 
 ## Adding Tailwind Plugins
 
-Additional Tailwind v4 plugins go in `main.css` as `@plugin` directives:
-
-```css
-@plugin "@tailwindcss/forms";       /* already included */
-@plugin "@tailwindcss/typography";  /* already included */
-@plugin "@tailwindcss/aspect-ratio"; /* example: add if needed */
-```
-
-Install via pnpm first:
+Tailwind v4 plugins are installed as packages and referenced in `frontend/css/main.css`:
 
 ```bash
-cd node && pnpm add -D @tailwindcss/aspect-ratio
+# Install
+pnpm add -D @tailwindcss/typography
+```
+
+```css
+/* frontend/css/main.css */
+@import "tailwindcss";
+@plugin "@tailwindcss/typography";
+```
+
+The `prose` class is then available in any `.tsx` file:
+```tsx
+<div className="prose prose-invert max-w-none">
+  {/* rich text content */}
+</div>
 ```
