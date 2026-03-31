@@ -1,0 +1,62 @@
+/*
+ * RhamaaCMS Docs — extra.css
+ * Thin layer on top of midnight-gold.css (Forest Sanctuary theme).
+ * Only add genuinely additive rules here; never override brand tokens.
+ */
+
+/* ===== Content max-width ===== */
+@media screen and (min-width: 76.25em) {
+  .md-content__inner {
+    max-width: 72rem;
+  }
+}
+
+/* ===== Smooth page transitions ===== */
+.md-content {
+  animation: page-enter 0.3s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+@keyframes page-enter {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* ===== Permalink anchors ===== */
+.md-typeset .headerlink {
+  color: var(--gold-500);
+  opacity: 0;
+  transition: opacity 200ms;
+  margin-left: 0.4em;
+  font-size: 0.75em;
+}
+
+.md-typeset :is(h1,h2,h3,h4,h5,h6):hover .headerlink {
+  opacity: 0.6;
+}
+
+/* ===== Inline highlight (==text==) ===== */
+.md-typeset mark {
+  background: var(--gold-100);
+  color: var(--gold-700);
+  padding: 0.05em 0.25em;
+  border-radius: 0.2em;
+}
+
+/* ===== Utility: text gradient brand ===== */
+.text-gradient-brand {
+  background: linear-gradient(135deg, var(--rhm-300), var(--gold-400));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* ===== Back-to-top button ===== */
+.md-top {
+  background: var(--rhm-800);
+  color: var(--gold-300);
+  border: 1px solid rgba(200,169,110,0.2);
+}
+
+.md-top:hover {
+  background: var(--rhm-700);
+}

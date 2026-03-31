@@ -1,0 +1,161 @@
+site_name: RhamaaCMS
+site_url: https://rhamaacms.github.io
+site_description: Production-Ready Wagtail CMS Templates - Base Template Documentation
+site_author: RhamaaCMS Team
+
+copyright: Copyright &copy; 2026 RhamaaCMS Team
+
+repo_name: RhamaaCMS/RhamaaCMS
+repo_url: https://github.com/RhamaaCMS/RhamaaCMS
+edit_uri: edit/base/docs/
+
+theme:
+  name: material
+  logo: assets/logo.png
+  favicon: assets/logo.png
+  
+  palette:
+    # Light mode — Forest Sanctuary (default)
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      primary: custom
+      accent: teal
+      toggle:
+        icon: material/weather-night
+        name: Switch to dark mode
+    
+    # Dark mode
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      primary: custom
+      accent: teal
+      toggle:
+        icon: material/weather-sunny
+        name: Switch to light mode
+  
+  features:
+    - navigation.tabs
+    - navigation.sections
+    - navigation.expand
+    - navigation.path
+    - navigation.indexes
+    - navigation.top
+    - search.suggest
+    - search.highlight
+    - search.share
+    - content.tabs.link
+    - content.code.annotation
+    - content.code.copy
+    - content.action.edit
+    - content.action.view
+    - announce.dismiss
+
+plugins:
+  - search:
+      separator: '[\s\-,:!=\[\]()"/]+|\.(?!\d)|&[lg]t;|(?!\b)(?=[A-Z][a-z])'
+  - minify:
+      minify_html: true
+  # social plugin requires Cairo system library (GTK for Windows)
+  # Enable once Cairo is installed: pip install "mkdocs-material[imaging]" + GTK runtime
+  # - social:
+  #     cards_layout_options:
+  #       background_color: "#0D4A3C"
+  #       color: "#F7EFD8"
+
+extra:
+  social:
+    - icon: fontawesome/brands/github
+      link: https://github.com/RhamaaCMS/RhamaaCMS
+    - icon: fontawesome/brands/python
+      link: https://pypi.org/project/rhamaa/
+  
+  version:
+    provider: mike
+  
+  # Custom variables for templates
+  analytics:
+    provider: google
+    property: G-XXXXXXXXXX
+
+extra_css:
+  - stylesheets/midnight-gold.css
+  - stylesheets/extra.css
+
+extra_javascript:
+  - javascripts/extra.js
+
+# Navigation - Base First Structure
+nav:
+  - Home: index.md
+  
+  - Getting Started:
+    - getting-started/index.md
+    - Installation: getting-started/installation.md
+    - Quick Start: getting-started/quickstart.md
+    - Project Structure: getting-started/project-structure.md
+  
+  - Core (Base Template):
+    - core/index.md
+    - Models & BasePage: core/models.md
+    - Pages & Views: core/pages.md
+    - Django Templates: core/templates.md
+    - Static Assets: core/static-assets.md
+    - Navigation: core/navigation.md
+    - StreamField: core/streamfield.md
+  
+  - Frontend Stack:
+    - frontend/index.md
+    - Tailwind CSS v4: frontend/tailwind.md
+    - SASS/SCSS: frontend/sass.md
+    - Preline UI: frontend/preline.md
+  
+  - Alternative Templates:
+    - alternatives/index.md
+    - React + Inertia.js: alternatives/react-inertia.md
+    - IoT / MQTT: alternatives/iot.md
+  
+  - CLI Reference:
+    - cli/index.md
+    - Commands: cli/commands.md
+    - Creating Templates: cli/creating-templates.md
+  
+  - Deployment:
+    - deployment/index.md
+    - Production Checklist: deployment/production-checklist.md
+    - Fly.io: deployment/flyio.md
+    - Docker: deployment/docker.md
+    - Static Files: deployment/static-files.md
+  
+  - Contributing: contributing/index.md
+
+markdown_extensions:
+  - abbr
+  - admonition
+  - pymdownx.details
+  - pymdownx.superfences:
+      custom_fences:
+        - name: mermaid
+          class: mermaid
+          format: !!python/name:pymdownx.superfences.fence_code_format
+  - pymdownx.tabbed:
+      alternate_style: true
+  - pymdownx.highlight:
+      anchor_linenums: true
+      line_spans: __span
+      pygments_lang_class: true
+  - pymdownx.inlinehilite
+  - pymdownx.snippets
+  - pymdownx.emoji:
+      emoji_index: !!python/name:material.extensions.emoji.twemoji
+      emoji_generator: !!python/name:material.extensions.emoji.to_svg
+  - pymdownx.keys
+  - pymdownx.mark
+  - pymdownx.tilde
+  - tables
+  - toc:
+      permalink: true
+      title: On this page
+  - attr_list
+  - md_in_html
+  - def_list
+  - footnotes

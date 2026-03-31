@@ -1,0 +1,7 @@
+# Documentation dependencies for RhamaaCMS
+mkdocs-material
+mkdocs-minify-plugin
+mkdocs-social-plugin
+mike
+pymdown-extensions
+mkdocs-material[imaging]
