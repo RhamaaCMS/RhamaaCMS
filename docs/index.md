@@ -683,6 +683,8 @@ rhamaa cms start myproject --template iot
 
 </div>
 
+</div>
+
 [Full Quick Start Guide →](getting-started/quickstart.md){ .md-button .md-button--primary }
 [CLI Reference →](cli/index.md){ .md-button }
 
@@ -716,6 +718,4 @@ rhamaa cms start myproject --template iot
 
 <div style="text-align:center; padding: 1.5rem 0; font-family: 'DM Sans', sans-serif; font-size: 0.8rem; color: var(--lp-gold-500); letter-spacing: 0.08em; text-transform: uppercase;">
   Built with care by the RhamaaCMS Team · MIT License
-</div>
-
 </div>
