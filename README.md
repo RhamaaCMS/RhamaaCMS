@@ -9,12 +9,12 @@ A production-ready **Wagtail CMS** base template with a full **React + Inertia.j
 | Layer | Technology | Version |
 |---|---|---|
 | CMS Framework | [Wagtail](https://wagtail.org/) on [Django](https://djangoproject.com/) | Wagtail 7.3 / Django 6.0 |
-| CSS | [Tailwind CSS v4](https://tailwindcss.com/) via `@tailwindcss/vite` | v4.1 |
+| CSS | [Tailwind CSS v4](https://tailwindcss.com/) via PostCSS (`@tailwindcss/postcss`) | v4.2 |
 | UI Components | [shadcn/ui](https://ui.shadcn.com/) + [Aceternity UI](https://ui.aceternity.com/) | – |
 | JS Framework | [React 18](https://react.dev/) + [TypeScript](https://www.typescriptlang.org/) | 18.x / 5.x |
 | SPA Bridge | [Inertia.js](https://inertiajs.com/) (`inertia-django` + `@inertiajs/react`) | v2 |
-| Bundler | [Vite](https://vitejs.dev/) | v6 |
-| Package Manager | [pnpm](https://pnpm.io/) | v8+ |
+| Bundler | [Next.js](https://nextjs.org/) (webpack build for Inertia bundle) | v16 |
+| Package Manager | [npm](https://www.npmjs.com/) | v10+ |
 | Fonts | Cormorant Garamond (display) · DM Sans (body) · JetBrains Mono | via Google Fonts |
 
 ---
@@ -58,30 +58,28 @@ python manage.py createsuperuser
 ### 4. Install frontend dependencies
 
 ```bash
-pnpm install
+npm install
 ```
 
 ### 5. Build frontend assets
 
 ```bash
-pnpm run build
+npm run build
 ```
 
-### 6. Run both servers simultaneously
-
-> **Both must be running** — Vite serves assets in dev mode; without it the page is blank.
+### 6. Build frontend and run Django
 
 ```bash
-# Terminal 1 — Vite HMR (port 5173)
-pnpm run dev
+# Build Next-powered Inertia assets
+npm run build
 
-# Terminal 2 — Django (port 8000)
+# Run Django (port 8000)
 python manage.py runserver
 ```
 
 | URL | Description |
 |---|---|
-| `http://127.0.0.1:8000/` | Landing page |
+| `http://127.0.0.1:8000/` | Landing page (Inertia + React) |
 | `http://127.0.0.1:8000/admin/` | Wagtail CMS admin |
 | `http://127.0.0.1:8000/django-admin/` | Django admin |
 
@@ -106,7 +104,7 @@ URL Router  ({{ project_name }}/urls.py)
     HomePage.serve()  →  inertia.render(request, "home/Index", props)
          │
          ├─ First visit ──→  layout.html shell + JSON in <div id="app">
-         │                   └─ Vite loads main.tsx → React renders Home page
+         │                   └─ Next-built bundle loads Inertia app (`main_next.tsx`)
          │
          └─ Navigation ───→  JSON only (no full reload)  ← React updates DOM
 ```
@@ -127,7 +125,7 @@ URL Router  ({{ project_name }}/urls.py)
 │   └── templatetags/                # Custom template tags
 ├── frontend/                        # React/TypeScript source — edit here
 │   ├── css/main.css                 # Tailwind v4 @import + shadcn vars + brand tokens
-│   ├── js/main.tsx                  # Inertia bootstrap (CSRF + createInertiaApp)
+│   ├── js/main_next.tsx             # Inertia bootstrap (CSRF + createInertiaApp)
 │   ├── layouts/RootLayout.tsx       # Navbar + Footer shell
 │   ├── components/
 │   │   ├── Navbar.tsx / Footer.tsx
@@ -137,7 +135,7 @@ URL Router  ({{ project_name }}/urls.py)
 │   │   ├── home/Index.tsx           # Home page (served at /)
 │   │   └── errors/                  # NotFound.tsx, ServerError.tsx
 │   ├── lib/utils.ts                 # cn() Tailwind class merger
-│   └── types/                       # global.d.ts (PageProps), vite-env.d.ts
+│   └── types/                       # global.d.ts (PageProps)
 ├── docs/                            # Extended documentation
 │   ├── 01-setup.md
 │   ├── 02-development.md
@@ -158,8 +156,8 @@ URL Router  ({{ project_name }}/urls.py)
 │   ├── templates/
 │   │   └── layout.html              # ONLY HTML template — Inertia root shell
 │   └── urls.py                      # handler404/500 + Wagtail routes
-├── package.json                     # Root frontend deps (Vite, React, shadcn…)
-├── vite.config.ts                   # Vite config (React + @tailwindcss/vite)
+├── package.json                     # Root frontend deps (Next, React, shadcn…)
+├── next.config.mjs                  # Next build config for Inertia asset output
 ├── tsconfig.json                    # TypeScript config
 ├── components.json                  # shadcn/ui CLI config
 └── manage.py
@@ -173,20 +171,20 @@ All commands run from the **project root** (where `package.json` lives).
 
 ```bash
 # Install dependencies
-pnpm install
+npm install
 
-# Development — Vite HMR on port 5173 (must run alongside Django)
-pnpm run dev
+# Local Next dev server (optional, for frontend-only debugging)
+npm run dev
 
-# Production build → frontend/dist/
-pnpm run build
+# Production-like build used by Django → frontend/dist-next/
+npm run build
 
 # TypeScript type check
-pnpm run typecheck
+npm run typecheck
 ```
 
-> **Important:** Tailwind v4 scans all files matched by `@tailwindcss/vite` automatically.
-> No `@source` directives needed — Vite handles it via the plugin.
+> **Important:** Tailwind v4 now runs through PostCSS (`postcss.config.mjs`) and
+> uses explicit `@source` directives in `frontend/css/main.css`.
 
 ---
 

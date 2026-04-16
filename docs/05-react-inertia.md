@@ -16,8 +16,8 @@ Django/Wagtail URL Router
   └── /                → Wagtail Page → inertia.render() ──────────────┐
                                                                         │
                                          layout.html (HTML shell)  ←───┘
-                                           └── Vite loads main.tsx
-                                                 └── React renders pages/home/Index.tsx
+                                           └── Next-built assets load main_next.tsx
+                                                 └── React renders frontend/pages/home/Index.tsx
 ```
 
 On the **first** request Inertia returns the full HTML shell (`layout.html`) with the page data embedded as JSON in a `<div id="app" data-page="...">`. On subsequent navigations it fetches only JSON — no full page reload.
@@ -30,28 +30,28 @@ On the **first** request Inertia returns the full HTML shell (`layout.html`) wit
 |-------------|----------------------------|
 | Server      | `inertia-django` — wraps `render()` responses |
 | HTML shell  | `{{ project_name }}/templates/layout.html` |
-| Client boot | `frontend/js/main.tsx`     |
+| Client boot | `frontend/js/main_next.tsx` |
 | UI library  | shadcn/ui (Radix UI + CVA) |
 | Effects     | Aceternity UI (copy-paste) |
-| Styling     | Tailwind CSS v4 (`@tailwindcss/vite`) |
-| Bundler     | Vite 6                     |
+| Styling     | Tailwind CSS v4 (`@tailwindcss/postcss`) |
+| Bundler     | Next.js 16 (webpack build output consumed by Django) |
 
 ---
 
 ## Running in Development
 
-Two servers must run simultaneously:
+Build assets first, then run Django:
 
 ```bash
-# Terminal 1 — Vite HMR (port 5173)
-pnpm run dev
-
-# Terminal 2 — Django (port 8000)
+npm run build
 python manage.py runserver
 ```
 
-> **Without Vite running**, `layout.html` will inject a `<script>` pointing to
-> `localhost:5173` which will silently fail. The page will appear blank.
+Optional frontend-only debug server:
+
+```bash
+npm run dev
+```
 
 ---
 
@@ -62,7 +62,7 @@ frontend/
 ├── css/
 │   └── main.css              # Tailwind v4 @import + shadcn CSS vars + brand tokens
 ├── js/
-│   └── main.tsx              # Inertia bootstrap (CSRF setup + createInertiaApp)
+│   └── main_next.tsx         # Inertia bootstrap (CSRF setup + createInertiaApp)
 ├── layouts/
 │   └── RootLayout.tsx        # Navbar + Footer shell wrapping all pages
 ├── components/
@@ -84,8 +84,7 @@ frontend/
 ├── lib/
 │   └── utils.ts              # cn() Tailwind class merger
 └── types/
-    ├── global.d.ts           # Shared PageProps + auth types
-    └── vite-env.d.ts         # /// <reference types="vite/client" />
+    └── global.d.ts           # Shared PageProps + auth types
 ```
 
 ---
@@ -199,7 +198,7 @@ export default function SomePage() {
 ## Adding shadcn/ui Components
 
 ```bash
-pnpm dlx shadcn@latest add <component>
+npx shadcn@latest add <component>
 ```
 
 Components land in `frontend/components/ui/`. They work out-of-the-box with the CSS variables defined in `frontend/css/main.css`.
@@ -215,14 +214,11 @@ Aceternity components are **copy-paste** (no npm package). Browse [ui.aceternity
 ## Build Commands
 
 ```bash
-# Development (run alongside Django)
-pnpm run dev
-
-# Production build → frontend/dist/
-pnpm run build
+# Next build consumed by Django staticfiles
+npm run build
 
 # TypeScript type check
-pnpm run typecheck
+npm run typecheck
 ```
 
 ---
@@ -242,13 +238,13 @@ pnpm run typecheck
 ### 1. Build frontend assets
 
 ```bash
-pnpm run build
+npm run build
 ```
 
-Outputs to `frontend/dist/` including:
-- `frontend/dist/.vite/manifest.json` — asset manifest (required by django-vite in production)
-- `frontend/dist/js/main-[hash].js` — bundled React app
-- `frontend/dist/css/main-[hash].css` — compiled Tailwind CSS
+Outputs to `frontend/dist-next/` including:
+- `frontend/dist-next/manifest.json` — Django template asset manifest
+- `frontend/dist-next/chunks/**` — bundled React/Next runtime chunks
+- `frontend/dist-next/css/**` — compiled Tailwind CSS
 
 ### 2. Collect static files
 
@@ -256,7 +252,7 @@ Outputs to `frontend/dist/` including:
 python manage.py collectstatic --no-input
 ```
 
-This copies `frontend/dist/` (plus any other `STATICFILES_DIRS` entries) into `STATIC_ROOT` (default: `static/`), from where Nginx serves them.
+This copies `frontend/dist-next/` (plus any other `STATICFILES_DIRS` entries) into `STATIC_ROOT` (default: `static/`), from where Nginx serves them.
 
 ### 3. Production settings
 
@@ -280,7 +276,7 @@ DATABASES = {
 }
 ```
 
-Verify `DJANGO_VITE` has `dev_mode: False` (already the default in `base.py`).
+No `django-vite` runtime config is required; Django reads `frontend/dist-next/manifest.json` via `next_inertia_assets` template tag.
 
 ### 4. Gunicorn + Nginx example
 
@@ -324,8 +320,8 @@ server {
 
 ```bash
 # On the server, after pulling new code:
-pnpm install            # install/update JS deps
-pnpm run build          # rebuild frontend assets
+npm install             # install/update JS deps
+npm run build           # rebuild frontend assets
 pip install -r requirements.txt  # install/update Python deps
 python manage.py migrate         # run any new migrations
 python manage.py collectstatic --no-input
@@ -357,10 +353,10 @@ ALLOWED_HOSTS = env.list("ALLOWED_HOSTS")
 
 | Gotcha | Fix |
 |---|---|
-| Blank page in dev | Run `pnpm run dev` — Vite must be running |
-| `can't detect preamble` error | Add `{% vite_react_refresh %}` to `layout.html` before `{% vite_asset %}` |
-| `"use client"` in `.tsx` file | Remove it — Next.js-only directive, breaks Vite |
+| Blank/stale page after edits | Re-run `npm run build` then hard refresh |
+| Missing static chunks in browser | Ensure `frontend/dist-next/manifest.json` points to `/static/chunks/*` and run `collectstatic` |
+| `"use client"` in `.tsx` file | Safe to use when needed; bundle is built by Next |
 | Page component not found | Component name in `inertia_render()` must match file path under `frontend/pages/` (case-sensitive on Linux) |
-| Blank page in production | Run `pnpm run build` then `collectstatic`; verify `DJANGO_VITE dev_mode=False` |
-| CSRF errors on POST | Ensure `meta[name=csrf-token]` is in `layout.html`; `main.tsx` reads it into axios defaults |
+| Blank page in production | Run `npm run build` then `collectstatic` and restart app server |
+| CSRF errors on POST | Ensure `meta[name=csrf-token]` is in `layout.html`; `main_next.tsx` attaches `X-CSRFToken` |
 | `layout.html` shadows `inertia.html` | Never name your layout template `inertia.html` — it shadows the package's own template |

@@ -19,3 +19,7 @@ coverage
 .vim
 /dist
 /static_compiled
+/.next-inertia/
+/frontend/dist-next/
+/next-env.d.ts
+/tsconfig.tsbuildinfo

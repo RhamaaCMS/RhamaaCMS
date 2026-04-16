@@ -2,12 +2,12 @@ export function Footer() {
   const year = new Date().getFullYear();
 
   return (
-    <footer className="border-t border-white/[0.07] bg-brand-800 px-6 py-3">
+    <footer className="border-t border-white/10 bg-black px-6 py-3">
       <div className="mx-auto flex max-w-7xl flex-col items-center justify-between gap-1 sm:flex-row">
-        <span className="font-mono text-[11px] text-white/25">
+        <span className="font-mono text-[11px] text-zinc-500">
           &copy; {year} RhamaaCMS
         </span>
-        <span className="font-mono text-[11px] text-white/25">
+        <span className="font-mono text-[11px] text-zinc-500">
           {[
             { label: "Wagtail", href: "https://wagtail.org" },
             { label: "Tailwind CSS v4", href: "https://tailwindcss.com" },
@@ -20,7 +20,7 @@ export function Footer() {
                 href={link.href}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="transition-colors hover:text-gold-400"
+                className="transition-colors hover:text-zinc-200"
               >
                 {link.label}
               </a>

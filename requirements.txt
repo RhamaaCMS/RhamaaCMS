@@ -4,6 +4,5 @@ wagtail-seo
 wagtail-cache
 python-dotenv>=1.0
 
-# Inertia.js + Vite integration
+# Inertia.js integration
 inertia-django>=0.3
-django-vite>=3.0

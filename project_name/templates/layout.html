@@ -1,18 +1,21 @@
 {% verbatim %}
-{% load django_vite %}<!DOCTYPE html>
+
+{% load next_inertia_assets %}
+<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="csrf-token" content="{{ csrf_token }}" />
     <title>RhamaaCMS</title>
-    {% vite_hmr_client %}
-    {% vite_react_refresh %}
-    {% vite_asset 'js/main.tsx' %}
+    {% next_inertia_assets %}
 </head>
 <body>
+    {% next_runtime_bootstrap %}
     {% block inertia %}{% endblock %}
 </body>
 </html>
+
+
 
 {% endverbatim %}
