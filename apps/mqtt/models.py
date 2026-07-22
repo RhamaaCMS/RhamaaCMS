@@ -42,6 +42,10 @@ class MQTTMessage(models.Model):
         ordering = ["-received_at"]
         verbose_name = "MQTT Message"
         verbose_name_plural = "MQTT Messages"
+        permissions = [
+            ("publish_mqtt", "Can publish MQTT messages"),
+            ("manage_mqtt_subscriptions", "Can manage MQTT subscriptions"),
+        ]
 
     def __str__(self):
         return f"[{self.direction.upper()}] {self.topic} @ {self.received_at:%Y-%m-%d %H:%M:%S}"

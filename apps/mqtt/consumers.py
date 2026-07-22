@@ -12,6 +12,7 @@ Only staff users are allowed to connect.
 
 import logging
 
+from asgiref.sync import sync_to_async
 from channels.generic.websocket import AsyncJsonWebsocketConsumer
 
 logger = logging.getLogger(__name__)
@@ -22,7 +23,7 @@ DASHBOARD_GROUP = "mqtt_dashboard"
 class MQTTDashboardConsumer(AsyncJsonWebsocketConsumer):
     async def connect(self):
         user = self.scope.get("user")
-        if not user or not user.is_staff:
+        if not user or not user.is_staff or not await self._has_perm("mqtt.view_mqttmessage"):
             await self.close(code=4403)
             return
 
@@ -30,10 +31,13 @@ class MQTTDashboardConsumer(AsyncJsonWebsocketConsumer):
         await self.accept()
 
         from .client import mqtt_client
+        from .runtime_status import get_runtime_status
+
+        runtime = await sync_to_async(get_runtime_status)()
         await self.send_json(
             {
                 "type": "status",
-                "broker_connected": mqtt_client.is_connected,
+                "broker_connected": runtime["connected"],
                 "topics": mqtt_client.active_topics,
             }
         )
@@ -58,15 +62,37 @@ class MQTTDashboardConsumer(AsyncJsonWebsocketConsumer):
             {"type": "ping"}
         """
         msg_type = content.get("type")
+        from django.conf import settings
         from .client import mqtt_client
 
+        if (
+            msg_type in {"publish", "subscribe", "unsubscribe", "reload_subscriptions"}
+            and getattr(settings, "MQTT_RUN_MODE", "disabled") != "embedded"
+        ):
+            await self.send_json(
+                {
+                    "type": "error",
+                    "message": "Direct MQTT mutations are disabled outside embedded development mode.",
+                }
+            )
+            return
+
         if msg_type == "publish":
+            if not await self._has_perm("mqtt.publish_mqtt"):
+                await self.send_json({"type": "error", "message": "Permission denied."})
+                return
             topic = content.get("topic", "").strip()
             payload = content.get("payload", "")
-            qos = int(content.get("qos", 0))
+            try:
+                qos = int(content.get("qos", 0))
+            except (TypeError, ValueError):
+                qos = -1
 
-            if not topic:
-                await self.send_json({"type": "error", "message": "Topic is required."})
+            if not topic or len(topic) > 500 or "+" in topic or "#" in topic or qos not in (0, 1, 2):
+                await self.send_json({"type": "error", "message": "Invalid topic or QoS."})
+                return
+            if len(str(payload).encode("utf-8")) > 256 * 1024:
+                await self.send_json({"type": "error", "message": "Payload is too large."})
                 return
 
             try:
@@ -76,6 +102,9 @@ class MQTTDashboardConsumer(AsyncJsonWebsocketConsumer):
                 await self.send_json({"type": "error", "message": str(exc)})
 
         elif msg_type == "subscribe":
+            if not await self._has_perm("mqtt.manage_mqtt_subscriptions"):
+                await self.send_json({"type": "error", "message": "Permission denied."})
+                return
             topic = content.get("topic", "").strip()
             if not topic:
                 await self.send_json({"type": "error", "message": "Topic is required."})
@@ -98,6 +127,9 @@ class MQTTDashboardConsumer(AsyncJsonWebsocketConsumer):
                 )
 
         elif msg_type == "unsubscribe":
+            if not await self._has_perm("mqtt.manage_mqtt_subscriptions"):
+                await self.send_json({"type": "error", "message": "Permission denied."})
+                return
             topic = content.get("topic", "").strip()
             if not topic:
                 await self.send_json({"type": "error", "message": "Topic is required."})
@@ -119,6 +151,9 @@ class MQTTDashboardConsumer(AsyncJsonWebsocketConsumer):
                 )
 
         elif msg_type == "reload_subscriptions":
+            if not await self._has_perm("mqtt.manage_mqtt_subscriptions"):
+                await self.send_json({"type": "error", "message": "Permission denied."})
+                return
             ok = await mqtt_client.reload_subscriptions()
             await self.channel_layer.group_send(
                 DASHBOARD_GROUP,
@@ -142,13 +177,20 @@ class MQTTDashboardConsumer(AsyncJsonWebsocketConsumer):
             )
 
         elif msg_type == "ping":
+            from .runtime_status import get_runtime_status
+
+            runtime = await sync_to_async(get_runtime_status)()
             await self.send_json(
                 {
                     "type": "pong",
-                    "broker_connected": mqtt_client.is_connected,
+                    "broker_connected": runtime["connected"],
                     "topics": mqtt_client.active_topics,
                 }
             )
+
+    async def _has_perm(self, permission: str) -> bool:
+        user = self.scope.get("user")
+        return bool(user and await sync_to_async(user.has_perm)(permission))
 
     # ------------------------------------------------------------------
     # Messages from channel layer group

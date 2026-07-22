@@ -24,6 +24,7 @@ from django.urls import reverse, NoReverseMatch
 
 from .client import mqtt_client
 from .models import MQTTMessage, MQTTSettings
+from .runtime_status import get_runtime_status
 
 logger = logging.getLogger(__name__)
 
@@ -44,6 +45,7 @@ def staff_view(fn):
 
 
 @staff_view
+@permission_required("mqtt.view_mqttmessage", raise_exception=True)
 def dashboard(request):
     mqtt_settings = MQTTSettings.get_solo()
 
@@ -82,7 +84,7 @@ def dashboard(request):
             "mqtt_settings": mqtt_settings,
             "broker_host": broker_host,
             "broker_port": broker_port,
-            "broker_connected": mqtt_client.is_connected,
+            "broker_connected": get_runtime_status()["connected"],
             "direction_filter": direction_filter,
             "topic_filter": topic_filter,
             "total_messages": MQTTMessage.objects.count(),
@@ -101,6 +103,7 @@ def dashboard(request):
 
 
 @staff_view
+@permission_required("mqtt.publish_mqtt", raise_exception=True)
 @require_http_methods(["POST"])
 def publish_api(request):
     """
@@ -122,6 +125,13 @@ def publish_api(request):
         async_to_sync(mqtt_client.publish)("topic", "payload")
     """
     try:
+        from django.conf import settings as django_settings
+
+        if getattr(django_settings, "MQTT_RUN_MODE", "disabled") != "embedded":
+            return JsonResponse(
+                {"ok": False, "error": "Direct dashboard publish is only available in embedded development mode."},
+                status=503,
+            )
         if request.content_type and "json" in request.content_type:
             data = json.loads(request.body)
         else:
@@ -152,6 +162,7 @@ def publish_api(request):
 
 
 @staff_view
+@permission_required("mqtt.delete_mqttmessage", raise_exception=True)
 @require_http_methods(["POST"])
 def history_delete(request, pk):
     """Delete a single message from history."""
@@ -161,6 +172,7 @@ def history_delete(request, pk):
 
 
 @staff_view
+@permission_required("mqtt.delete_mqttmessage", raise_exception=True)
 @require_http_methods(["POST"])
 def history_clear(request):
     """Delete ALL messages from history."""
@@ -169,6 +181,7 @@ def history_clear(request):
 
 
 @staff_view
+@permission_required("mqtt.delete_mqttmessage", raise_exception=True)
 @require_http_methods(["POST"])
 def history_purge(request):
     """Purge messages older than the configured retention period."""
@@ -183,12 +196,6 @@ def history_purge(request):
 
 
 @staff_view
+@permission_required("mqtt.view_mqttmessage", raise_exception=True)
 def status(request):
-    from django.conf import settings as s
-    return JsonResponse(
-        {
-            "connected": mqtt_client.is_connected,
-            "host": getattr(s, "MQTT_BROKER_HOST", "localhost"),
-            "port": getattr(s, "MQTT_BROKER_PORT", 1883),
-        }
-    )
+    return JsonResponse(get_runtime_status())

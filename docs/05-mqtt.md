@@ -2,6 +2,16 @@
 
 Real-time IoT integration via MQTT. RhamaaCMS ships with a full MQTT module (`apps/mqtt`) that connects to any MQTT broker, manages topic subscriptions, persists message history, and streams data live to the browser via WebSocket.
 
+## Runtime modes
+
+| Mode | Use |
+|---|---|
+| `disabled` | Tests and projects without MQTT |
+| `embedded` | Single-process development; ASGI lifespan owns MQTT |
+| `worker` | Production; run one `python manage.py mqtt_worker` process |
+
+Production web workers never connect directly to broker. Dedicated worker owns MQTT; Redis carries dashboard broadcasts. Installed apps register worker extensions through `apps.mqtt.worker_registry.register_worker_task()`; `Apps/IoT` uses this to drain its durable outbox.
+
 ---
 
 ## Architecture Overview
@@ -60,10 +70,14 @@ apps/mqtt/
 Set these in your `.env` (or server environment):
 
 ```env
-MQTT_BROKER_HOST=broker.emqx.io   # default: public EMQX sandbox
+MQTT_RUN_MODE=embedded
+MQTT_BROKER_HOST=localhost
 MQTT_BROKER_PORT=1883
-MQTT_CLIENT_ID=rhamaacms-dev       # optional, auto-generated if empty
+MQTT_CLIENT_ID=rhamaacms-dev
+MQTT_DEFAULT_TOPICS=iot/v1/+/+/up/#
 ```
+
+No fallback subscription is created. Empty configuration subscribes to nothing; global `#` is never enabled implicitly.
 
 These are read in `settings/base.py` via `os.getenv`.
 
@@ -267,7 +281,7 @@ Clients connect to `ws://<host>/ws/mqtt/dashboard/`.
 
 ## Development Tips
 
-- **Public sandbox**: default broker is `broker.emqx.io:1883` — shared with the entire internet. Use a unique topic prefix (e.g., `rhamaa/<yourname>/#`) to avoid noise.
+- **Public sandbox**: only opt in for development. Never use a shared public broker for production or sensitive telemetry.
 - **Local broker**: install Mosquitto (`choco install mosquitto`) and set `MQTT_BROKER_HOST=localhost`.
 - **MQTT Explorer** (desktop app) is useful for monitoring topics in real time alongside the dashboard.
 - Hot-reload: the server auto-reloads on file changes. After reload, MQTT reconnects automatically within a few seconds.

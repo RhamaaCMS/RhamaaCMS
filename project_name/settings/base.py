@@ -11,10 +11,14 @@ https://docs.djangoproject.com/en/6.0/ref/settings/
 """
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
+import os
 from pathlib import Path
+
+from dotenv import load_dotenv
 
 PROJECT_DIR = Path(__file__).resolve().parent.parent
 BASE_DIR = PROJECT_DIR.parent
+load_dotenv(BASE_DIR / ".env")
 
 
 # Quick-start development settings - unsuitable for production
@@ -22,6 +26,8 @@ BASE_DIR = PROJECT_DIR.parent
 
 
 # Application definition
+
+RHAMAA_CAPABILITIES = {"mqtt-worker-v1"}
 
 INSTALLED_APPS = [
     "apps.home",
@@ -92,11 +98,14 @@ ASGI_APPLICATION = "{{ project_name }}.asgi.application"
 # Database
 # https://docs.djangoproject.com/en/6.0/ref/settings/#databases
 
+import dj_database_url
+
 DATABASES = {
-    "default": {
-        "ENGINE": "django.db.backends.sqlite3",
-        "NAME": BASE_DIR / "db.sqlite3",
-    }
+    "default": dj_database_url.config(
+        default=f"sqlite:///{BASE_DIR / 'db.sqlite3'}",
+        conn_max_age=int(os.environ.get("DB_CONN_MAX_AGE", "60")),
+        conn_health_checks=True,
+    )
 }
 
 
@@ -178,11 +187,27 @@ DATA_UPLOAD_MAX_NUMBER_FIELDS = 10_000
 #       }
 #   }
 # ---------------------------------------------------------------------------
-CHANNEL_LAYERS = {
-    "default": {
-        "BACKEND": "channels.layers.InMemoryChannelLayer",
+REDIS_URL = os.environ.get("REDIS_URL", "").strip()
+if REDIS_URL:
+    CHANNEL_LAYERS = {
+        "default": {
+            "BACKEND": "channels_redis.core.RedisChannelLayer",
+            "CONFIG": {"hosts": [REDIS_URL]},
+        }
     }
-}
+    CACHES = {
+        "default": {
+            "BACKEND": "django.core.cache.backends.redis.RedisCache",
+            "LOCATION": REDIS_URL,
+        }
+    }
+else:
+    CHANNEL_LAYERS = {
+        "default": {"BACKEND": "channels.layers.InMemoryChannelLayer"}
+    }
+    CACHES = {
+        "default": {"BACKEND": "django.core.cache.backends.locmem.LocMemCache"}
+    }
 
 
 # ---------------------------------------------------------------------------
@@ -190,13 +215,21 @@ CHANNEL_LAYERS = {
 # Configure via .env — see .env.example
 # Default: EMQX public broker (development only — messages are public!)
 # ---------------------------------------------------------------------------
-import os as _os
-
-MQTT_ENABLED = _os.environ.get("MQTT_ENABLED", "True") == "True"
-MQTT_BROKER_HOST = _os.environ.get("MQTT_BROKER_HOST", "broker.emqx.io")
-MQTT_BROKER_PORT = int(_os.environ.get("MQTT_BROKER_PORT", "1883"))
-MQTT_USERNAME = _os.environ.get("MQTT_USERNAME") or None
-MQTT_PASSWORD = _os.environ.get("MQTT_PASSWORD") or None
+MQTT_RUN_MODE = os.environ.get("MQTT_RUN_MODE", "disabled").strip().lower()
+MQTT_BROKER_HOST = os.environ.get("MQTT_BROKER_HOST", "localhost")
+MQTT_BROKER_PORT = int(os.environ.get("MQTT_BROKER_PORT", "1883"))
+MQTT_USERNAME = os.environ.get("MQTT_USERNAME") or None
+MQTT_PASSWORD = os.environ.get("MQTT_PASSWORD") or None
+MQTT_CLIENT_ID = os.environ.get("MQTT_CLIENT_ID", "").strip()
+MQTT_DEFAULT_TOPICS = tuple(
+    topic.strip()
+    for topic in os.environ.get("MQTT_DEFAULT_TOPICS", "").split(",")
+    if topic.strip()
+)
+MQTT_TLS_ENABLED = os.environ.get("MQTT_TLS_ENABLED", "False").lower() == "true"
+MQTT_TLS_CA_CERT = os.environ.get("MQTT_TLS_CA_CERT", "").strip()
+MQTT_TLS_CERTFILE = os.environ.get("MQTT_TLS_CERTFILE", "").strip()
+MQTT_TLS_KEYFILE = os.environ.get("MQTT_TLS_KEYFILE", "").strip()
 
 
 # Wagtail settings
@@ -213,7 +246,7 @@ WAGTAILSEARCH_BACKENDS = {
 
 # Base URL to use when referring to full URLs within the Wagtail admin backend -
 # e.g. in notification emails. Don't include '/admin' or a trailing slash
-WAGTAILADMIN_BASE_URL = "http://example.com"
+WAGTAILADMIN_BASE_URL = os.environ.get("WAGTAILADMIN_BASE_URL", "http://localhost:8000")
 
 # Allowed file extensions for documents in the document library.
 # This can be omitted to allow all files, but note that this may present a security risk

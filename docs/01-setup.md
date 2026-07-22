@@ -59,7 +59,7 @@ Settings are split across three files in `{{ project_name }}/settings/`:
 |---|---|
 | `base.py` | Shared, production-safe settings |
 | `dev.py` | Imports `base.py`; sets `DEBUG=True`, `ALLOWED_HOSTS=["*"]`, console email |
-| `production.py` | Imports `base.py`; sets `DEBUG=False`, `ManifestStaticFilesStorage` |
+| `production.py` | Strict environment settings, Redis, secure cookies, HSTS, production static storage |
 | `local.py` | **Gitignored.** Per-machine overrides; imported last by both dev and production |
 
 Django defaults to `dev.py` (via `manage.py`). The `dev.py` file contains an **insecure hardcoded `SECRET_KEY`** — override it before any real deployment.
@@ -160,10 +160,13 @@ In **production**, run `python manage.py collectstatic` to copy everything to `S
 
 ## Production Checklist
 
-- [ ] Set a strong, unique `SECRET_KEY` in `local.py` (never commit it)
+- [ ] Set a strong, unique `DJANGO_SECRET_KEY`
 - [ ] Set `DEBUG = False` — use `production.py` or override in `local.py`
 - [ ] Set `ALLOWED_HOSTS` to your actual domain(s)
-- [ ] Switch to PostgreSQL (update `DATABASES` in `local.py`)
+- [ ] Set PostgreSQL `DATABASE_URL`
+- [ ] Set `REDIS_URL` for Channels and shared runtime state
+- [ ] Set `MQTT_RUN_MODE=worker`, stable `MQTT_CLIENT_ID`, credentials, and TLS
+- [ ] Run one `python manage.py mqtt_worker` process
 - [ ] Set `WAGTAILADMIN_BASE_URL` to your production domain in `base.py`
 - [ ] Run `pnpm run build:prod` (minified output, no source maps)
 - [ ] Run `python manage.py collectstatic`

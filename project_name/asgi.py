@@ -1,16 +1,16 @@
 """
 ASGI configuration for RhamaaCMS.
 
-Single-runtime architecture:
+Runtime architecture:
   - HTTP + WebSocket served via Django Channels (Daphne / Uvicorn)
-  - MQTT client starts/stops via ASGI lifespan events (MQTTLifespanMiddleware)
-  - No separate terminal or worker needed
+  - Development: MQTT_RUN_MODE=embedded starts MQTT through ASGI lifespan
+  - Production: MQTT_RUN_MODE=worker; run `python manage.py mqtt_worker`
 
 Run in development:
     uvicorn {{ project_name }}.asgi:application --reload --lifespan on
 
 Run in production (single command):
-    gunicorn -k uvicorn.workers.UvicornWorker {{ project_name }}.asgi:application -w 2
+    gunicorn -k uvicorn_worker.UvicornWorker {{ project_name }}.asgi:application -w 2
 """
 
 import os

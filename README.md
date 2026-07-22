@@ -18,7 +18,7 @@ A clean, production-ready **Wagtail CMS** starter template styled with **Tailwin
 | ASGI Server | [Uvicorn](https://www.uvicorn.org/) | latest |
 | WebSocket | [Django Channels](https://channels.readthedocs.io/) | v4 |
 | MQTT Client | [aiomqtt](https://github.com/sbtinstruments/aiomqtt) | latest |
-| Default Broker | [EMQX Public Sandbox](https://www.emqx.com/en/mqtt/public-mqtt5-broker) | `broker.emqx.io:1883` |
+| Default Broker | Local/self-managed broker | `localhost:1883` |
 
 ---
 
@@ -74,6 +74,15 @@ The project uses **ASGI** (required for WebSocket/MQTT). Use `uvicorn` instead o
 ```bash
 uvicorn {{ project_name }}.asgi:application --reload --lifespan on --port 8000
 ```
+
+Development defaults to `MQTT_RUN_MODE=embedded` and must remain single-process. Production uses separate processes:
+
+```bash
+DJANGO_SETTINGS_MODULE={{ project_name }}.settings.production gunicorn {{ project_name }}.asgi:application -w 2 -k uvicorn_worker.UvicornWorker
+DJANGO_SETTINGS_MODULE={{ project_name }}.settings.production python manage.py mqtt_worker
+```
+
+Production requires PostgreSQL (`DATABASE_URL`), Redis (`REDIS_URL`), stable `MQTT_CLIENT_ID`, and preferably MQTT TLS.
 
 | URL | Description |
 |---|---|

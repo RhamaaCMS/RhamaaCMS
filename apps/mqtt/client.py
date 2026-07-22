@@ -12,14 +12,15 @@ Single import point for all MQTT operations across the project:
     from asgiref.sync import async_to_sync
     async_to_sync(mqtt_client.publish)("devices/room1/cmd", "ON")
 
-The client starts automatically when the ASGI server boots via
-MQTTLifespanMiddleware (apps/mqtt/middleware.py). No separate terminal
-or worker process is needed.
+Runtime ownership depends on MQTT_RUN_MODE: embedded mode uses ASGI lifespan;
+production worker mode uses ``python manage.py mqtt_worker``.
 """
 
 import asyncio
 import logging
-import uuid
+import random
+import socket
+import ssl
 from typing import Optional
 
 logger = logging.getLogger(__name__)
@@ -29,8 +30,8 @@ class MQTTClientManager:
     """
     Manages the aiomqtt connection lifecycle.
 
-    - Starts/stops via ASGI lifespan events (single runtime).
-    - Auto-reconnects on connection loss with a 5 s backoff.
+    - Starts/stops through embedded ASGI lifespan or dedicated worker.
+    - Auto-reconnects with exponential backoff and jitter.
     - Runs an hourly auto-purge task for message history.
     - Fires Django signals and broadcasts to WebSocket on every message.
 
@@ -54,6 +55,7 @@ class MQTTClientManager:
         self._purge_task: Optional[asyncio.Task] = None
         self._connected = False
         self._active_topics: set[str] = set()
+        self._connection_ready = asyncio.Event()
 
     @property
     def is_connected(self) -> bool:
@@ -67,8 +69,11 @@ class MQTTClientManager:
         """Called at ASGI lifespan startup."""
         from django.conf import settings as s
 
-        if not getattr(s, "MQTT_ENABLED", True):
-            logger.info("MQTT: Disabled (MQTT_ENABLED=False)")
+        if getattr(s, "MQTT_RUN_MODE", "disabled") == "disabled":
+            logger.info("MQTT: disabled")
+            return
+        if self._mqtt_task and not self._mqtt_task.done():
+            logger.debug("MQTT: client already started")
             return
 
         host = getattr(s, "MQTT_BROKER_HOST", "localhost")
@@ -92,7 +97,18 @@ class MQTTClientManager:
                 except asyncio.CancelledError:
                     pass
         self._connected = False
+        self._connection_ready.clear()
+        self._client = None
+        self._mqtt_task = None
+        self._purge_task = None
         logger.info("MQTT: Client stopped")
+
+    async def wait_until_connected(self, timeout: float | None = None) -> bool:
+        try:
+            await asyncio.wait_for(self._connection_ready.wait(), timeout=timeout)
+        except TimeoutError:
+            return False
+        return True
 
     # ------------------------------------------------------------------
     # Connection loop
@@ -103,9 +119,11 @@ class MQTTClientManager:
         import aiomqtt
         from django.conf import settings as s
 
-        client_id = f"rhamaa-{uuid.uuid4().hex[:8]}"
+        client_id = getattr(s, "MQTT_CLIENT_ID", "") or f"rhamaa-{socket.gethostname()}"
         username = getattr(s, "MQTT_USERNAME", None)
         password = getattr(s, "MQTT_PASSWORD", None)
+        tls_context = self._build_tls_context(s)
+        retry_delay = 1.0
 
         while True:
             try:
@@ -113,10 +131,14 @@ class MQTTClientManager:
                 if username:
                     kwargs["username"] = username
                     kwargs["password"] = password
+                if tls_context:
+                    kwargs["tls_context"] = tls_context
 
                 async with aiomqtt.Client(**kwargs) as client:
                     self._client = client
                     self._connected = True
+                    self._connection_ready.set()
+                    retry_delay = 1.0
                     await self._fire_connection_signal(True, host, port)
 
                     topics = await self._load_topics()
@@ -136,11 +158,16 @@ class MQTTClientManager:
                 break
             except Exception as exc:
                 self._connected = False
+                self._connection_ready.clear()
                 self._client = None
                 self._active_topics = set()
                 await self._fire_connection_signal(False, host, port)
-                logger.warning(f"MQTT: Lost connection ({exc}), retry in 5 s…")
-                await asyncio.sleep(5)
+                sleep_for = min(60.0, retry_delay) + random.uniform(0, 0.5)
+                logger.warning(
+                    "MQTT: Lost connection (%s), retry in %.1f s", exc, sleep_for
+                )
+                await asyncio.sleep(sleep_for)
+                retry_delay = min(60.0, retry_delay * 2)
 
     # ------------------------------------------------------------------
     # Incoming message handling
@@ -343,6 +370,12 @@ class MQTTClientManager:
 
     async def _load_topics(self) -> list[str]:
         """Read subscribed topics from MQTTTopic records."""
+        from django.conf import settings as django_settings
+        from .worker_registry import get_default_topics
+
+        fallback_topics = set(getattr(django_settings, "MQTT_DEFAULT_TOPICS", ()))
+        fallback_topics.update(get_default_topics())
+
         try:
             from asgiref.sync import sync_to_async
             from .models import MQTTSettings
@@ -352,9 +385,24 @@ class MQTTClientManager:
                 return list(s.topics.values_list("topic", flat=True))
 
             topics = await sync_to_async(_get)()
-            return [t.strip() for t in topics if t.strip()] or ["#"]
+            configured = [t.strip() for t in topics if t.strip()]
+            return configured or sorted(fallback_topics)
         except Exception:
-            return ["#"]
+            logger.exception("MQTT: failed to load subscriptions")
+            return sorted(fallback_topics)
+
+    @staticmethod
+    def _build_tls_context(settings):
+        if not getattr(settings, "MQTT_TLS_ENABLED", False):
+            return None
+        context = ssl.create_default_context(
+            cafile=getattr(settings, "MQTT_TLS_CA_CERT", "") or None
+        )
+        certfile = getattr(settings, "MQTT_TLS_CERTFILE", "")
+        keyfile = getattr(settings, "MQTT_TLS_KEYFILE", "")
+        if certfile:
+            context.load_cert_chain(certfile=certfile, keyfile=keyfile or None)
+        return context
 
     async def _auto_purge_loop(self):
         """Hourly task: delete old messages based on MQTTSettings retention policy."""
@@ -375,6 +423,11 @@ class MQTTClientManager:
         try:
             from asgiref.sync import sync_to_async
             from .signals import mqtt_connection_changed
+            from .runtime_status import set_runtime_status
+
+            await sync_to_async(set_runtime_status)(
+                connected=connected, host=host, port=port
+            )
             await sync_to_async(mqtt_connection_changed.send)(
                 sender=self.__class__, connected=connected, host=host, port=port
             )

@@ -11,6 +11,7 @@ from .base import *  # noqa: E402, F401, F403
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = os.environ.get("DJANGO_DEBUG", "True") == "True"
+MQTT_RUN_MODE = os.environ.get("MQTT_RUN_MODE", "embedded").strip().lower()
 
 # SECURITY WARNING: keep the secret key used in production secret!
 SECRET_KEY = os.environ.get(
